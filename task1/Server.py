@@ -114,18 +114,48 @@ class Server:
                     #print(address)
                     port = int(self.client['rtpPort'])
                     #print(port)
-                    packet = self.makeRtp(data, frameNumber)
+                    #packet = self.makeRtp(data, frameNumber)
                     #print('packet done')
                     #print(packet)
-                    self.client['rtpSocket'].sendto(packet, (address, port))
+                    packet_list = self.makeRtpList(data,frameNumber)
+                    for packet in packet_list:
+                        self.client['rtpSocket'].sendto(packet, (address, port))
                     self.client['frameNumber'] = self.client['frameNumber'] + 1
-                    if self.client['frameNumber'] == 3:
+                    if self.client['frameNumber'] == 35:
                         self.client['frameNumber'] = 0
+
                 except:
                     print "Connection Error"
 
+    def makeRtpList(self,payload,frameNumber):
+        packet_list = []
+        remain = len(payload)
+        while remain > 0:
+            V = 2
+            P = 0
+            X = 0
+            CC = 0
+            M = 0
+            PT = 26
+            seqNum = frameNumber
+            SSRC = 0
+            if remain <= 10240:
+                M = 1
+                packet_length = remain
+            else:
+                packet_length = 10240
+
+            rtpPacket = RtpPacket()
+            rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload[0:packet_length])
+            packet = rtpPacket.getPacket()
+            packet_list.append(packet)
+            payload = payload[packet_length:]
+            remain = remain - packet_length
+        return packet_list
+
+
     def makeRtp(self, payload, frameNbr):
-        """RTP-packetize the video data."""
+
         V = 2
         P = 0
         X = 0

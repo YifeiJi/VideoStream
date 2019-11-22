@@ -97,18 +97,32 @@ class Client:
 		while True:
 			try:
 				#print('listening')
-				data = self.rtpSocket.recv(20480)
-				if data:
+				m = 0
+				payload = None
+				while m == 0:
+					data = self.rtpSocket.recv(20480)
+					if data:
+						rtpPacket = RtpPacket()
+						rtpPacket.decode(data)
+						m = rtpPacket.getM()
+						currFrameNbr = rtpPacket.seqNum()
+						if not payload:
+							payload = rtpPacket.getPayload()
+						else:
+							payload = payload + rtpPacket.getPayload()
+						print(m)
+						if m == 1:
+							print('break')
+							break
 
-					rtpPacket = RtpPacket()
-					rtpPacket.decode(data)
-					
-					currFrameNbr = rtpPacket.seqNum()
-					#sprint("Current Seq Num: " + str(currFrameNbr))
-					self.frameNbr = -1
-					if currFrameNbr > self.frameNbr: # Discard the late packet
-						self.frameNbr = currFrameNbr
-						self.updateMovie(self.writeFrame(rtpPacket.getPayload()))
+				#print("Current Seq Num: " + str(currFrameNbr))
+				#print(len(payload))
+				#input()
+				self.frameNbr = -1
+				if currFrameNbr > self.frameNbr: # Discard the late packet
+					self.frameNbr = currFrameNbr
+					self.updateMovie(self.writeFrame(payload))
+				payload = None
 			except:
 				# Stop listening upon requesting PAUSE or TEARDOWN
 				if self.playEvent.isSet(): 
@@ -133,7 +147,7 @@ class Client:
 	def updateMovie(self, imageFile):
 		"""Update the image file as video frame in the GUI."""
 		photo = ImageTk.PhotoImage(Image.open(imageFile))
-		self.label.configure(image = photo, height=288) 
+		self.label.configure(image = photo, height=960)
 		self.label.image = photo
 		
 	def connectToServer(self):

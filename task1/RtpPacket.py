@@ -50,7 +50,12 @@ class RtpPacket:
 		"""Return timestamp."""
 		timestamp = self.header[4] << 24 | self.header[5] << 16 | self.header[6] << 8 | self.header[7]
 		return int(timestamp)
-	
+
+	def getM(self):
+		if self.header[1] == (0 << 7) | 26:
+			return 0
+		else:
+			return 1
 	def payloadType(self):
 		"""Return payload type."""
 		pt = self.header[1] & 127
