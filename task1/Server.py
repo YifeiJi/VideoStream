@@ -16,11 +16,12 @@ class Server:
         while True:
             res = conn.recv(256)
             if res:
-                print ("Received:\n" + res)
+                print ("Received:\n")
+                print(res)
                 self.handleRtsp(res)
 
     def handleRtsp(self,request):
-
+        request = request.decode('utf-8')
         request = request.split('\n')
         print('request:',request)
         first_item = request[0].split(' ')
@@ -86,6 +87,7 @@ class Server:
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
             print('reply')
             print(reply)
+            reply = reply.encode('utf-8')
             connSocket = self.client['rtspSocket'][0]
             connSocket.send(reply)
 
@@ -125,7 +127,7 @@ class Server:
                         self.client['frameNumber'] = 0
 
                 except:
-                    print "Connection Error"
+                    print ("Connection Error")
 
     def makeRtpList(self,payload,frameNumber):
         packet_list = []
