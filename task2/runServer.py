@@ -10,6 +10,6 @@ rtspSocket.listen(5)
 while True:
     client = {}
     client['rtspSocket'] = rtspSocket.accept()
-    server = Server(client)
+    server = Server(SERVER_PORT,client)
     server.start()
 
