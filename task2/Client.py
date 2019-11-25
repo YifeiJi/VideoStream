@@ -52,7 +52,7 @@ class Client(QMainWindow):
         self.movie_slider.setMinimum(0)
         self.movie_slider.setTickInterval(1)
         self.movie_slider.setTracking(False)
-        #self.movie_slider.sliderReleased.connect(self.send_rst)
+        self.movie_slider.sliderReleased.connect(self.send_rst)
         self.movie_slider.show()
 
 
@@ -146,8 +146,8 @@ class Client(QMainWindow):
         print(self.state == self.READY)
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
-            #self.listenRtp()
-            # threading.Thread(target=self.listenRtsp).start()
+
+
             threading.Thread(target=self.listenRtp).start()
             self.playEvent = threading.Event()
             self.playEvent.clear()
@@ -158,16 +158,17 @@ class Client(QMainWindow):
         # self.client['rtpSocket'].sendto(packet, (address, port))
 
         message = 'ACK ' + str(num)
-        print(message)
+        #print(message)
         # print('sendAck')
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
     def send_rst(self):
+
         # self.client['rtpSocket'].sendto(packet, (address, port))
-        num = self.movie_slider.value()
+        num = self.movie_slider.sliderPosition()
         message = 'RES ' + str(num)
         print(message)
-        input()
+        #input()
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
     def listenRtp(self):
@@ -183,7 +184,7 @@ class Client(QMainWindow):
 
                     current_seq_num = rtpPacket.seqNum()
 
-                print(current_seq_num, self.seq_num)
+                #print(current_seq_num, self.seq_num)
                 # input()
                 if current_seq_num == self.seq_num + 1:  # Discard the late packet
                     self.seq_num = current_seq_num
@@ -194,8 +195,9 @@ class Client(QMainWindow):
                     if m == 1:
                         # print('m=1')
                         current_frame_num = rtpPacket.framenum()
-                        print('frame', current_frame_num)
-                        self.movie_slider.setValue(current_frame_num)
+                        #print('frame', current_frame_num)
+                        if not self.movie_slider.isSliderDown():
+                            self.movie_slider.setValue(current_frame_num)
                         name = self.writeFrame(payload)
 
                         self.update.emit(name)
@@ -306,10 +308,10 @@ class Client(QMainWindow):
             return
 
         # Send the RTSP request using rtspSocket.
-        print(request)
+        #print(request)
         self.rtspSocket.send(request.encode())
 
-        print('\nData sent:\n' + request)
+        #print('\nData sent:\n' + request)
 
     def recvRtspReply(self):
         """Receive RTSP reply from the server."""
@@ -331,8 +333,8 @@ class Client(QMainWindow):
 
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server."""
-        print('Received:')
-        print(data)
+        #print('Received:')
+        #print(data)
         lines = str(data).split('\n')
         seqNum = int(lines[1].split(' ')[1])
 
@@ -372,7 +374,7 @@ class Client(QMainWindow):
     def openRtpPort(self):
         """Open RTP socket binded to a specified port."""
         # Create a new datagram socket to receive RTP packets from the server
-        print('begin open')
+
         self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Set the timeout value of the socket to 0.5sec
@@ -380,8 +382,7 @@ class Client(QMainWindow):
 
         try:
             # Bind the socket to the address using the RTP port given by the client user
-            print('rtpport')
-            print(self.rtpPort)
+
             self.rtpSocket.bind(("", self.rtpPort))
         except:
             tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' % self.rtpPort)

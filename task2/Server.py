@@ -23,6 +23,7 @@ class Server:
         self.lastInWindow = -1
         self.interval = 0.01
         self.lock = threading.Lock()
+        self.video_lock = threading.Lock()
 
     def start(self):
         threading.Thread(target=self.listen_rtsp).start()
@@ -153,8 +154,8 @@ class Server:
                 cmd_list = msg.split(" ")
                 if cmd_list[0] == 'ACK':
                     ack_num = int(cmd_list[-1])
-                    print("Received ACK: ")
-                    print(ack_num)
+                    #print("Received ACK: ")
+                    #print(ack_num)
                     if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
                         self.lock.acquire()
                         #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
@@ -163,9 +164,15 @@ class Server:
                         self.timer = self.timeout
                         self.lock.release()
                 elif cmd_list[0] == 'RES':
+                    #print(cmd_list)
                     restore_frame = int(cmd_list[1])
                     if self.video:
+                        self.video_lock.acquire()
                         self.video.set_frame(restore_frame)
+                        self.video_lock.release()
+                else:
+                    pass
+                    #print(cmd_list)
 
 
     def count_down(self):
@@ -181,8 +188,8 @@ class Server:
             self.timer = self.timer - 1
             if self.timer == 0:
                 self.lock.acquire()
-                print('resend')
-                print(self.firstInWindow, self.lastInWindow)
+                #print('resend')
+                #print(self.firstInWindow, self.lastInWindow)
                 self.resend_packets(self.firstInWindow, self.lastInWindow)
                 self.timer = self.timeout
                 self.lock.release()
@@ -212,11 +219,17 @@ class Server:
                     self.video = Video(self.filename)
 
             if new_data or self.new_video:
+                self.video_lock.acquire()
                 tuple = self.video.next_frame()
+                self.video_lock.release()
+
                 self.new_video = False
                 if not tuple:
                     self.video = Video(self.filename)
+                    self.video_lock.acquire()
                     data, frame_num = self.video.next_frame()
+                    self.video_lock.release()
+
                 else:
                     data, frame_num = tuple
                 packet_num = self.cal_packet_num(data)
