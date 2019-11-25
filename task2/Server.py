@@ -15,13 +15,13 @@ class Server:
         self.video = None
         self.new_video = False
         self.buffer = []
-        self.timer = 30
-        self.timeout = 30
+        self.timer = 10
+        self.timeout = 10
         self.window_size = 10
         self.current_window_num = 0
         self.firstInWindow = 0
         self.lastInWindow = -1
-        self.interval = 0.001
+        self.interval = 0.01
         self.lock = threading.Lock()
 
     def start(self):
@@ -212,16 +212,18 @@ class Server:
                     self.video = Video(self.filename)
 
             if new_data or self.new_video:
-                data, frame_num = self.video.next_frame()
+                tuple = self.video.next_frame()
                 self.new_video = False
-                if not data:
+                if not tuple:
                     self.video = Video(self.filename)
-                    data = self.video.next_frame()
+                    data, frame_num = self.video.next_frame()
+                else:
+                    data, frame_num = tuple
                 packet_num = self.cal_packet_num(data)
                 packet_list = self.make_rtp_list(data, frame_num)
                 packet_list_index = 0
 
-            if packet_num + self.current_window_num <= self.window_size:
+            if packet_num - packet_list_index + self.current_window_num <= self.window_size:
                 new_data = True
             else:
                 new_data = False
@@ -242,9 +244,6 @@ class Server:
                         self.buffer[index] = (packet, current_seq)
                     self.send_rtp_packet(packet)
 
-
-                    # print('cur_seq')
-                    # print(current_seq)
                     self.lastInWindow = current_seq
                     self.current_window_num = self.lastInWindow - self.firstInWindow + 1  # self.current_window_num + 1
                     self.lock.release()
