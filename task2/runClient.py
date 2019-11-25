@@ -1,6 +1,10 @@
 import sys
 from tkinter import Tk
 from Client import Client
+from PyQt5.QtWidgets import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 if __name__ == "__main__":
     try:
@@ -11,10 +15,12 @@ if __name__ == "__main__":
     except:
         print ("[Usage: ClientLauncher.py Server_name Server_port RTP_port Video_file]\n")
 
-    root = Tk()
-    button_root = Tk()
+
+    # root = Tk()
+    # button_root = Tk()
+    app = QApplication(sys.argv)
 
     # Create a new client
-    app = Client(root,button_root, serverAddr, serverPort, rtpPort, fileName)
-    app.buttonmaster.title("Client")
-    root.mainloop()
+    client = Client(None,None, serverAddr, serverPort, rtpPort, fileName)
+    client.show()
+    sys.exit(app.exec_())

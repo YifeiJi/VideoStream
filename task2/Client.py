@@ -2,14 +2,24 @@ from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
 import socket, threading, sys, traceback, os
-
 from RtpPacket import RtpPacket
+from PyQt5.QtWidgets import *
+from PyQt5.QtNetwork import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
 
 CACHE_FILE_NAME = "cache-"
 CACHE_FILE_EXT = ".jpg"
 
+class Movie_window(QMainWindow):
+    def __init__(self):
+        super(Movie_window, self).__init__()
+        self.setFixedSize(1600, 900)
+        self.setWindowTitle('Play')
 
-class Client:
+
+class Client(QMainWindow):
     INIT = 0
     READY = 1
     PLAYING = 2
@@ -21,14 +31,32 @@ class Client:
     PAUSE = 2
     TEARDOWN = 3
     SETUPMOVIE = 4
-
+    update = pyqtSignal(str)
     # Initiation..
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport, filename):
-        self.master = master
-        self.master.protocol("WM_DELETE_WINDOW", self.handler)
-        self.buttonmaster = buttonmaster
-        self.buttonmaster.protocol("WM_DELETE_WINDOW", self.handler)
-        self.buttonlist = []
+        super(Client, self).__init__()
+        #self.master = master
+        #self.master.protocol("WM_DELETE_WINDOW", self.handler)
+        #self.buttonmaster = buttonmaster
+        #self.buttonmaster.protocol("WM_DELETE_WINDOW", self.handler)
+        self.list = QListWidget(self)
+
+        self.movie_window = Movie_window()
+        self.movie_label = QLabel(self.movie_window)
+        self.movie_label.setGeometry(50, 50, 500, 500)
+        self.movie_label.setScaledContents(True)
+        self.movie_label.show()
+
+        self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
+        self.movie_slider.setGeometry(50, 750, 500, 500)
+        self.movie_slider.setMinimum(0)
+        self.movie_slider.setTickInterval(1)
+        self.movie_slider.setTracking(False)
+        #self.movie_slider.sliderReleased.connect(self.send_rst)
+        self.movie_slider.show()
+
+
+        self.movie_list = ['a.mp4','b.mp4']
         self.createWidgets()
         self.addWidgets(['a.mp4', 'b.mp4'])
         self.serverAddr = serveraddr
@@ -41,71 +69,72 @@ class Client:
         self.teardownAcked = 0
         self.connectToServer()
         self.seq_num = -1
+        self.move(300, 300)
+        self.setWindowTitle('Client')
+        self.update.connect(self.updateMovie)
+
+        # 显示在屏幕上
+
 
     def createWidgets(self):
         """Build GUI."""
         # Create Setup button
-        self.setup = Button(self.buttonmaster, width=20, padx=3, pady=3)
-        self.setup["text"] = "Setup"
-        self.setup["command"] = self.setupConnection
-        self.setup.grid(row=1, column=0, padx=2, pady=2)
+        self.setup_button = QPushButton('Setup', self)
+        self.setup_button.clicked.connect(self.setupConnection)
+        self.setup_button.move(100, 140)
+        self.setup_button.resize(150, 50)
 
-        # Create Play button
-        self.start = Button(self.buttonmaster, width=20, padx=3, pady=3)
-        self.start["text"] = "Play"
-        self.start["command"] = self.playMovie
-        self.start.grid(row=1, column=1, padx=2, pady=2)
+        self.play_button = QPushButton('Play', self)
+        self.play_button.clicked.connect(self.playMovie)
+        self.play_button.move(300, 140)
+        self.play_button.resize(150, 50)
 
-        # Create Pause button
-        self.pause = Button(self.buttonmaster, width=20, padx=3, pady=3)
-        self.pause["text"] = "Pause"
-        self.pause["command"] = self.pauseMovie
-        self.pause.grid(row=1, column=2, padx=2, pady=2)
+        self.pause_button = QPushButton('Pause', self)
+        self.pause_button.clicked.connect(self.pauseMovie)
+        self.pause_button.move(500, 140)
+        self.pause_button.resize(150, 50)
 
-        # Create Teardown button
-        self.teardown = Button(self.buttonmaster, width=20, padx=3, pady=3)
-        self.teardown["text"] = "Teardown"
-        self.teardown["command"] = self.exitClient
-        self.teardown.grid(row=1, column=3, padx=2, pady=2)
-
-        # Create a label to display the movie
-
-        self.label = Label(self.master, height=19)
-        self.label.grid(row=0, column=0, columnspan=4, sticky=W + E + N + S, padx=5, pady=5)
+        self.teardown_button = QPushButton('Teardown', self)
+        self.teardown_button.clicked.connect(self.exitClient)
+        self.teardown_button.move(700, 140)
+        self.teardown_button.resize(150, 50)
 
     def addWidgets(self, name_list):
         """Build GUI."""
         # Create Setup button
-        row = 1
-        for name in name_list:
-            row = row + 1
-            temp = Button(self.buttonmaster, width=20, padx=3, pady=3)
-            temp["text"] = name
-            temp["command"] = lambda inname=name: self.setupMovie(inname)
-            temp.grid(row=row, column=0, padx=2, pady=2)
-            self.buttonlist.append(temp)
+        self.list.show()
+        self.list.move(530, 200)
+        self.list.resize(480, 650)
+        self.list.itemDoubleClicked.connect(self.setupMovie)
 
-    # def setupWrapper(self,filename):
+        for name in name_list:
+            #icon_name = 'file.jpg' if isfile else 'folder.jpg'
+            item = QListWidgetItem(name)
+            self.list.addItem(item)
+
     def setupConnection(self):
         """Setup button handler."""
         if self.state == self.INIT:
             self.sendRtspRequest(self.SETUP)
 
-    def setupMovie(self, filename):
+    def setupMovie(self,item):
         """Setup button handler."""
+        filename = item.text()
         print(filename)
         self.fileName = filename
         self.sendRtspRequest(self.SETUPMOVIE)
 
+
     def exitClient(self):
         """Teardown button handler."""
         self.sendRtspRequest(self.TEARDOWN)
-        self.master.destroy()  # Close the gui window
-        self.buttonmaster.destroy()
+        # self.master.destroy()  # Close the gui window
+        # self.buttonmaster.destroy()
         try:
             os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
         except:
             pass
+        #self.destroy()
 
     def pauseMovie(self):
         """Pause button handler."""
@@ -114,12 +143,16 @@ class Client:
 
     def playMovie(self):
         """Play button handler."""
+        print(self.state == self.READY)
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
+            #self.listenRtp()
+            # threading.Thread(target=self.listenRtsp).start()
             threading.Thread(target=self.listenRtp).start()
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
+            self.movie_window.show()
 
     def sendACK(self, num):
         # self.client['rtpSocket'].sendto(packet, (address, port))
@@ -129,9 +162,13 @@ class Client:
         # print('sendAck')
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
-    # print('rtcpport')
-    # print(self.serverPort + 1)
-    # input()
+    def send_rst(self):
+        # self.client['rtpSocket'].sendto(packet, (address, port))
+        num = self.movie_slider.value()
+        message = 'RES ' + str(num)
+        print(message)
+        input()
+        self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
     def listenRtp(self):
         """Listen for RTP packets."""
@@ -145,10 +182,10 @@ class Client:
                     m = rtpPacket.getM()
 
                     current_seq_num = rtpPacket.seqNum()
-                # print(current_seq_num, self.seq_num)
+
+                print(current_seq_num, self.seq_num)
                 # input()
-                if current_seq_num == self.seq_num + 1 or (
-                        current_seq_num == 0 and self.seq_num == 65535):  # Discard the late packet
+                if current_seq_num == self.seq_num + 1:  # Discard the late packet
                     self.seq_num = current_seq_num
                     if not payload:
                         payload = rtpPacket.getPayload()
@@ -156,7 +193,13 @@ class Client:
                         payload = payload + rtpPacket.getPayload()
                     if m == 1:
                         # print('m=1')
-                        self.updateMovie(self.writeFrame(payload))
+                        current_frame_num = rtpPacket.framenum()
+                        print('frame', current_frame_num)
+                        self.movie_slider.setValue(current_frame_num)
+                        name = self.writeFrame(payload)
+
+                        self.update.emit(name)
+                        #self.updateMovie(self.writeFrame(payload))
                         payload = None
                 else:
                     self.sendACK(self.seq_num)
@@ -184,9 +227,28 @@ class Client:
     def updateMovie(self, imageFile):
         """Update the image file as video frame in the GUI."""
         # imageFile = 'test.jpg'
-        photo = ImageTk.PhotoImage(Image.open(imageFile))
-        self.label.configure(image=photo, height=600)
-        self.label.image = photo
+        #print(imageFile)
+
+        #self.screen = QGraphicsView(self.movie_window)
+        #jpg = QPixmap(imageFile)
+        #print(len(jpg))
+        #self.label = QLabel('haha',self.movie_window)
+        #self.label.setPixmap(jpg)
+        #self.label.show()
+        #self.label.configure(image=photo, height=600)
+        #self.label.image = photo
+
+        # window_pale = QPalette()
+        #         # window_pale.setBrush(self.backgroundRole(), QBrush(QPixmap(imageFile)))
+        #         # self.movie_window.setPalette(window_pale)
+        pix = QPixmap(imageFile)
+        #self.movie_label
+        #self.lab.setGeometry(50, 50, 300, 200)
+        #pixmap = QPixmap('F:\A_code\PyQT_Demo\\1.png')
+        self.movie_label.setPixmap(pix)
+
+
+
 
     def connectToServer(self):
         """Connect to the Server. Start a new RTSP/TCP session."""
@@ -198,10 +260,6 @@ class Client:
 
     def sendRtspRequest(self, requestCode):
         """Send RTSP request to the server."""
-        print('request code')
-        print(requestCode)
-        print('sttate')
-        print(self.state)
         # Setup request
         if requestCode == self.SETUP and self.state == self.INIT:
             threading.Thread(target=self.recvRtspReply).start()
@@ -262,11 +320,13 @@ class Client:
                 self.parseRtspReply(reply.decode("utf-8"))
 
             # Close the RTSP socket upon requesting Teardown
+
             if self.requestSent == self.TEARDOWN:
                 if self.playEvent:
                     self.playEvent.set()
                 self.rtspSocket.shutdown(socket.SHUT_RDWR)
                 self.rtspSocket.close()
+                return
                 break
 
     def parseRtspReply(self, data):
@@ -286,7 +346,13 @@ class Client:
 
             # Process only if the session ID is the same
             if self.sessionId == session:
-                if int(lines[0].split(' ')[1]) == 200:
+                p = lines[0].split(' ')
+                if p[1] == 'Length':
+                    length = int(p[2])
+                    print(length)
+                    self.movie_slider.setMaximum(length)
+
+                elif int(p[1]) == 200:
                     if self.requestSent == self.SETUP:
                         # Update RTSP state.
                         self.state = self.READY

@@ -1,6 +1,6 @@
 import sys
 from time import time
-HEADER_SIZE = 12
+HEADER_SIZE = 16
 
 class RtpPacket:	
 	header = bytearray(HEADER_SIZE)
@@ -8,7 +8,7 @@ class RtpPacket:
 	def __init__(self):
 		pass
 		
-	def encode(self, version, padding, extension, cc, seqnum, marker, pt, ssrc,payload):
+	def encode(self, version, padding, extension, cc, seqnum, frame_num, marker, pt, ssrc,payload):
 		"""Encode the RTP packet with header fields and payload."""
 		timestamp = int(time())
 		header = bytearray(HEADER_SIZE)
@@ -26,6 +26,11 @@ class RtpPacket:
 		header[9] = ssrc >> 16 & 255
 		header[10] = ssrc >> 8 & 255
 		header[11] = ssrc & 255
+		header[12] = frame_num >> 24 & 255
+		header[13] = frame_num >> 16 & 255
+		header[14] = frame_num >> 8 & 255
+		header[15] = frame_num & 255
+
 
 
 		self.header = header
@@ -50,6 +55,11 @@ class RtpPacket:
 	def timestamp(self):
 		"""Return timestamp."""
 		timestamp = self.header[4] << 24 | self.header[5] << 16 | self.header[6] << 8 | self.header[7]
+		return int(timestamp)
+
+	def framenum(self):
+		"""Return timestamp."""
+		timestamp = self.header[12] << 24 | self.header[13] << 16 | self.header[14] << 8 | self.header[15]
 		return int(timestamp)
 
 	def getM(self):

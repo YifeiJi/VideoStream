@@ -77,10 +77,14 @@ class Server:
             if self.filename != filename:
                 self.video = Video(filename)
             self.filename = filename
-            self.reply_rtsp('OK_200', seq)
+            total_frame = self.video.get_length()
+            self.reply_rtsp('Length ' + str(total_frame), seq)
 
 
         elif cmd == 'TEARDOWN':
+            self.current_window_num = 0
+            self.firstInWindow = 0
+            self.lastInWindow = -1
             self.client['event'].set()
             self.reply_rtsp('OK_200', seq)
             self.client['rtpSocket'].close()
@@ -105,10 +109,20 @@ class Server:
                 self.status = 'READY'
                 self.client['event'].set()
                 self.reply_rtsp('OK_200', seq)
+
         else:
             pass
 
     def reply_rtsp(self, code, seq):
+        if code[0] == 'L':
+            # length 300
+            reply = 'RTSP/1.0 '+ code + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            print('reply')
+            print(reply)
+            reply = reply.encode('utf-8')
+            connSocket = self.client['rtspSocket'][0]
+            connSocket.send(reply)
+
         if code == 'OK_200':
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
@@ -136,16 +150,23 @@ class Server:
             if msg:
                 #print(msg.decode())
                 msg = msg.decode()
-                ack_num = int(msg.split(" ")[-1])
-                print("Received ACK: ")
-                print(ack_num)
-                if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
-                    self.lock.acquire()
-                    #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
-                    self.firstInWindow = ack_num + 1
-                    self.current_window_num = self.lastInWindow - self.firstInWindow + 1
-                    self.timer = self.timeout
-                    self.lock.release()
+                cmd_list = msg.split(" ")
+                if cmd_list[0] == 'ACK':
+                    ack_num = int(cmd_list[-1])
+                    print("Received ACK: ")
+                    print(ack_num)
+                    if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
+                        self.lock.acquire()
+                        #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
+                        self.firstInWindow = ack_num + 1
+                        self.current_window_num = self.lastInWindow - self.firstInWindow + 1
+                        self.timer = self.timeout
+                        self.lock.release()
+                elif cmd_list[0] == 'RES':
+                    restore_frame = int(cmd_list[1])
+                    if self.video:
+                        self.video.set_frame(restore_frame)
+
 
     def count_down(self):
         while True:
@@ -153,6 +174,9 @@ class Server:
             # Stop sending if request is PAUSE or TEARDOWN
             if self.client['event'].isSet():
                 break
+            if self.current_window_num == 0:
+                self.timer = self.timeout
+                continue
             sleep(self.interval)
             self.timer = self.timer - 1
             if self.timer == 0:
@@ -166,6 +190,8 @@ class Server:
         #pass
 
     def resend_packets(self,first, last):
+        if first > last:
+            return
         for i in range(first, last + 1):
             index = i % self.window_size
             #seq = self.buffer[index].get
@@ -186,13 +212,13 @@ class Server:
                     self.video = Video(self.filename)
 
             if new_data or self.new_video:
-                data = self.video.next_frame()
+                data, frame_num = self.video.next_frame()
                 self.new_video = False
                 if not data:
                     self.video = Video(self.filename)
                     data = self.video.next_frame()
                 packet_num = self.cal_packet_num(data)
-                packet_list = self.make_rtp_list(data)
+                packet_list = self.make_rtp_list(data, frame_num)
                 packet_list_index = 0
 
             if packet_num + self.current_window_num <= self.window_size:
@@ -242,9 +268,9 @@ class Server:
                 self.new_video = False
                 if not data:
                     self.video = Video(self.filename)
-                    data = self.video.next_frame()
+                    data, frame = self.video.next_frame()
                 packet_num = self.cal_packet_num(data)
-                packet_list = self.make_rtp_list(data)
+                packet_list = self.make_rtp_list(data, frame)
                 packet_list_index = 0
 
             # if packet_num + self.current_window_num <= self.window_size:
@@ -298,7 +324,7 @@ class Server:
         except:
             print("Connection Error")
 
-    def make_rtp_list(self,payload):
+    def make_rtp_list(self, payload, frame_num):
         packet_list = []
         remain = len(payload)
 
@@ -323,7 +349,7 @@ class Server:
                 packet_length = 10240
 
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload[0:packet_length])
+            rtpPacket.encode(V, P, X, CC, seqNum,frame_num, M, PT, SSRC, payload[0:packet_length])
             packet = rtpPacket.getPacket()
             packet_list.append((packet, seqNum))
             payload = payload[packet_length:]
@@ -333,7 +359,7 @@ class Server:
     def openRtcpPort(self):
         """Open RTCP socket binded to a specified port."""
         # Create a new datagram socket to receive RTP packets from the server
-        print('begin open')
+
         self.rtcpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Set the timeout value of the socket to 0.5sec
@@ -341,8 +367,8 @@ class Server:
 
         try:
             # Bind the socket to the address using the RTP port given by the client user
-            print('rtcpport')
-            print(self.rtcp_port)
+            #print('rtcpport')
+            #print(self.rtcp_port)
             #input()
             self.rtcpSocket.bind(("", self.rtcp_port))
 

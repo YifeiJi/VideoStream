@@ -12,10 +12,13 @@ class Video:
         self.cap = cv2.VideoCapture(filename)
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+        self.total = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def get_length(self):
+        return self.total
 
     def next_frame(self):
         self.frame_number = self.frame_number + 1
-
         if self.cap.isOpened():
             ret, frame = self.cap.read()
             if ret == True:
@@ -23,15 +26,14 @@ class Video:
                     return None
                 cv2.imwrite('temp.jpg', frame)
                 f = open('temp.jpg','rb')
-
-                return f.read()
+                return f.read(), self.frame_number - 1
             else:
                 return None
 
+    def set_frame(self, pos):
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, pos)
+        self.frame_number = pos
+        return
 
 
-video = Video('demo.mp4')
-data = video.next_frame()
-f = open('test3.jpg','wb')
-f.write(data)
 
