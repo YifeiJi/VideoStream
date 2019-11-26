@@ -13,6 +13,7 @@ class Video:
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.total = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        print(self.fps)
 
     def get_length(self):
         return self.total
@@ -29,6 +30,7 @@ class Video:
                 return f.read(), self.frame_number - 1
             else:
                 return None
+
 
     def set_frame(self, pos):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, pos)

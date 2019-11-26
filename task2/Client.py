@@ -1,12 +1,15 @@
 from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
+from time import *
 import socket, threading, sys, traceback, os
 from RtpPacket import RtpPacket
 from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+
+stor = {}
 
 
 CACHE_FILE_NAME = "cache-"
@@ -31,14 +34,11 @@ class Client(QMainWindow):
     PAUSE = 2
     TEARDOWN = 3
     SETUPMOVIE = 4
-    update = pyqtSignal(str)
+    update = pyqtSignal()
     # Initiation..
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport, filename):
         super(Client, self).__init__()
-        #self.master = master
-        #self.master.protocol("WM_DELETE_WINDOW", self.handler)
-        #self.buttonmaster = buttonmaster
-        #self.buttonmaster.protocol("WM_DELETE_WINDOW", self.handler)
+
         self.list = QListWidget(self)
 
         self.movie_window = Movie_window()
@@ -69,10 +69,19 @@ class Client(QMainWindow):
         self.teardownAcked = 0
         self.connectToServer()
         self.seq_num = -1
+        self.frame_to_play = 0
+        self.movie_length = 0
         self.move(300, 300)
         self.setWindowTitle('Client')
         self.update.connect(self.updateMovie)
 
+        self.frame_to_play = 0
+        self.require_buffer = True
+        self.buffer = 50
+        self.interval = 1 / 24
+        self.recv_v = 0
+        self.last_frame_time = 0
+        self.alpha = 0.9
         # 显示在屏幕上
 
 
@@ -123,6 +132,7 @@ class Client(QMainWindow):
         print(filename)
         self.fileName = filename
         self.sendRtspRequest(self.SETUPMOVIE)
+        self.frame_to_play = 0
 
 
     def exitClient(self):
@@ -149,10 +159,18 @@ class Client(QMainWindow):
 
 
             threading.Thread(target=self.listenRtp).start()
+            self.require_buffer = True
+            self.frame_to_play = 0
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
             self.movie_window.show()
+            threading.Thread(target=self.timer).start()
+    def timer(self):
+        while True:
+            self.update.emit()
+            sleep(self.interval)
+
 
     def sendACK(self, num):
         # self.client['rtpSocket'].sendto(packet, (address, port))
@@ -163,13 +181,20 @@ class Client(QMainWindow):
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
     def send_rst(self):
-
         # self.client['rtpSocket'].sendto(packet, (address, port))
         num = self.movie_slider.sliderPosition()
-        message = 'RES ' + str(num)
-        print(message)
-        #input()
-        self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
+        self.frame_to_play = num
+        while num < self.movie_length:
+            name = self.get_name(num)
+            if name not in stor:
+                message = 'RES ' + str(num)
+                print(message)
+                self.last_frame_time = 0
+                self.recv_v = 0
+                #input()
+                self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
+                break
+            num = num + 1
 
     def listenRtp(self):
         """Listen for RTP packets."""
@@ -194,14 +219,22 @@ class Client(QMainWindow):
                         payload = payload + rtpPacket.getPayload()
                     if m == 1:
                         # print('m=1')
+                        cur_time = time()
+                        if self.last_frame_time == 0:
+                            self.last_frame_time = cur_time
+
+                        time_expired = cur_time - self.last_frame_time
+                        self.last_frame_time = cur_time
+                        if self.recv_v == 0:
+                            self.recv_v = time_expired
+                        self.recv_v = self.recv_v * self.alpha + time_expired * (1 - self.alpha)
+                        
                         current_frame_num = rtpPacket.framenum()
                         #print('frame', current_frame_num)
-                        if not self.movie_slider.isSliderDown():
-                            self.movie_slider.setValue(current_frame_num)
-                        name = self.writeFrame(payload)
+                        print(self.recv_v)
+                        name = self.writeFrame(payload, self.fileName, current_frame_num)
 
-                        self.update.emit(name)
-                        #self.updateMovie(self.writeFrame(payload))
+                        #self.update.emit(name)
                         payload = None
                 else:
                     self.sendACK(self.seq_num)
@@ -217,37 +250,53 @@ class Client(QMainWindow):
                     self.rtpSocket.close()
                     break
 
-    def writeFrame(self, data):
+    def get_name(self,frame_num):
+        name = CACHE_FILE_NAME + str(self.sessionId) + self.fileName + '_' + str(frame_num) + CACHE_FILE_EXT
+        return name
+
+    def writeFrame(self, data, filename, current_frame_num):
+        global stor
         """Write the received frame to a temp image file. Return the image file."""
-        cachename = CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT
+        cachename = CACHE_FILE_NAME + str(self.sessionId) + filename + '_' + str(current_frame_num) + CACHE_FILE_EXT
         file = open(cachename, "wb")
         file.write(data)
         file.close()
+        stor[cachename] = data
 
         return cachename
 
-    def updateMovie(self, imageFile):
+    def updateMovie(self):
         """Update the image file as video frame in the GUI."""
-        # imageFile = 'test.jpg'
-        #print(imageFile)
 
-        #self.screen = QGraphicsView(self.movie_window)
-        #jpg = QPixmap(imageFile)
-        #print(len(jpg))
-        #self.label = QLabel('haha',self.movie_window)
-        #self.label.setPixmap(jpg)
-        #self.label.show()
-        #self.label.configure(image=photo, height=600)
-        #self.label.image = photo
+        if self.require_buffer:
+            buffer_ok = True
+            #self.buffer = 0
+            for i in range(self.frame_to_play, self.frame_to_play + self.buffer):
+                key = self.get_name(i)
+                #print(key)
+                if key not in stor:
+                    buffer_ok = False
+                    break
+            if buffer_ok:
+                self.require_buffer = False
+        else:
 
-        # window_pale = QPalette()
-        #         # window_pale.setBrush(self.backgroundRole(), QBrush(QPixmap(imageFile)))
-        #         # self.movie_window.setPalette(window_pale)
-        pix = QPixmap(imageFile)
-        #self.movie_label
-        #self.lab.setGeometry(50, 50, 300, 200)
-        #pixmap = QPixmap('F:\A_code\PyQT_Demo\\1.png')
-        self.movie_label.setPixmap(pix)
+            pixmap = QPixmap()
+            imageFile = self.get_name(self.frame_to_play)
+            if imageFile in stor:
+                data = stor[imageFile]
+                pixmap.loadFromData(data, "JPG")
+                self.movie_label.setPixmap(pixmap)
+                if not self.movie_slider.isSliderDown():
+                    self.movie_slider.setValue(self.frame_to_play)
+                self.frame_to_play = self.frame_to_play + 1
+            else:
+                print('cold',self.frame_to_play)
+                pass
+                #pix = QPixmap(imageFile)
+
+
+
 
 
 
@@ -353,7 +402,7 @@ class Client(QMainWindow):
                     length = int(p[2])
                     print(length)
                     self.movie_slider.setMaximum(length)
-
+                    self.movie_length = length
                 elif int(p[1]) == 200:
                     if self.requestSent == self.SETUP:
                         # Update RTSP state.
