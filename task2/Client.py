@@ -26,6 +26,7 @@ class Client(QMainWindow):
     INIT = 0
     READY = 1
     PLAYING = 2
+    PAUSED = 3
 
     state = INIT
 
@@ -93,12 +94,12 @@ class Client(QMainWindow):
         self.setup_button.move(100, 140)
         self.setup_button.resize(150, 50)
 
-        self.play_button = QPushButton('Play', self)
+        self.play_button = QPushButton('Play', self.movie_window)
         self.play_button.clicked.connect(self.playMovie)
         self.play_button.move(300, 140)
         self.play_button.resize(150, 50)
 
-        self.pause_button = QPushButton('Pause', self)
+        self.pause_button = QPushButton('Pause', self.movie_window)
         self.pause_button.clicked.connect(self.pauseMovie)
         self.pause_button.move(500, 140)
         self.pause_button.resize(150, 50)
@@ -133,6 +134,7 @@ class Client(QMainWindow):
         self.fileName = filename
         self.sendRtspRequest(self.SETUPMOVIE)
         self.frame_to_play = 0
+        self.movie_window.show()
 
 
     def exitClient(self):
@@ -149,23 +151,25 @@ class Client(QMainWindow):
     def pauseMovie(self):
         """Pause button handler."""
         if self.state == self.PLAYING:
-            self.sendRtspRequest(self.PAUSE)
+            #self.sendRtspRequest(self.PAUSE)
+            self.state = self.PAUSED
 
     def playMovie(self):
         """Play button handler."""
         print(self.state == self.READY)
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
-
-
             threading.Thread(target=self.listenRtp).start()
             self.require_buffer = True
             self.frame_to_play = 0
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
-            self.movie_window.show()
+            # self.movie_window.show()
             threading.Thread(target=self.timer).start()
+        elif self.state == self.PAUSED:
+            self.state = self.PLAYING
+            self.send_rst()
     def timer(self):
         while True:
             self.update.emit()
@@ -209,7 +213,7 @@ class Client(QMainWindow):
 
                     current_seq_num = rtpPacket.seqNum()
 
-                #print(current_seq_num, self.seq_num)
+                print(current_seq_num, self.seq_num)
                 # input()
                 if current_seq_num == self.seq_num + 1:  # Discard the late packet
                     self.seq_num = current_seq_num
@@ -231,7 +235,7 @@ class Client(QMainWindow):
                         
                         current_frame_num = rtpPacket.framenum()
                         #print('frame', current_frame_num)
-                        print(self.recv_v)
+                        #print(self.recv_v)
                         name = self.writeFrame(payload, self.fileName, current_frame_num)
 
                         #self.update.emit(name)
@@ -267,11 +271,16 @@ class Client(QMainWindow):
 
     def updateMovie(self):
         """Update the image file as video frame in the GUI."""
-
+        if self.state != self.PLAYING:
+            return
+        if self.movie_length == self.frame_to_play:
+            return
         if self.require_buffer:
             buffer_ok = True
-            #self.buffer = 0
-            for i in range(self.frame_to_play, self.frame_to_play + self.buffer):
+            up = self.frame_to_play + self.buffer
+            if up > self.movie_length:
+                up = self.movie_length
+            for i in range(self.frame_to_play, up):
                 key = self.get_name(i)
                 #print(key)
                 if key not in stor:
@@ -291,7 +300,7 @@ class Client(QMainWindow):
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1
             else:
-                print('cold',self.frame_to_play)
+                print('cold',self.frame_to_play,self.movie_length)
                 pass
                 #pix = QPixmap(imageFile)
 
@@ -311,6 +320,9 @@ class Client(QMainWindow):
 
     def sendRtspRequest(self, requestCode):
         """Send RTSP request to the server."""
+        #print('play request', requestCode == self.PLAY)
+        #print('play request 2', self.state == self.READY)
+
         # Setup request
         if requestCode == self.SETUP and self.state == self.INIT:
             threading.Thread(target=self.recvRtspReply).start()
@@ -334,6 +346,7 @@ class Client(QMainWindow):
             self.requestSent = self.SETUPMOVIE
 
         # Play request
+
         elif requestCode == self.PLAY and self.state == self.READY:
             self.rtspSeq += 1
             request = 'PLAY ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(

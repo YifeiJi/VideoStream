@@ -95,6 +95,7 @@ class Server:
             self.client['rtpSocket'] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.client['event'] = threading.Event()
             self.reply_rtsp('OK_200', seq)
+            print('start play')
             self.new_video = True
             threading.Thread(target=self.recvACK).start()
             threading.Thread(target=self.count_down).start()
@@ -140,8 +141,6 @@ class Server:
 
     def recvACK(self):
         while True:
-            #self.client['event'].wait(0.01)
-            # Stop sending if request is PAUSE or TEARDOWN
             if self.client['event'].isSet():
                 break
             conn = self.rtcpSocket
@@ -159,12 +158,19 @@ class Server:
                     if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
                         self.lock.acquire()
                         #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
+                        for t in range(self.firstInWindow,ack_num+1):
+                            index = t%self.window_size
+                            data,ii = self.buffer[index]
+                            if t != ii:
+                                print('recvackfail',ii,t)
+                                #input()
                         self.firstInWindow = ack_num + 1
                         self.current_window_num = self.lastInWindow - self.firstInWindow + 1
                         self.timer = self.timeout
                         self.lock.release()
                 elif cmd_list[0] == 'RES':
                     #print(cmd_list)
+                    self.status = 'PLAYING'
                     restore_frame = int(cmd_list[1])
                     if self.video:
                         self.video_lock.acquire()
@@ -188,8 +194,8 @@ class Server:
             self.timer = self.timer - 1
             if self.timer == 0:
                 self.lock.acquire()
-                #print('resend')
-                #print(self.firstInWindow, self.lastInWindow)
+                print('resend')
+                print(self.firstInWindow, self.lastInWindow)
                 self.resend_packets(self.firstInWindow, self.lastInWindow)
                 self.timer = self.timeout
                 self.lock.release()
@@ -201,8 +207,9 @@ class Server:
             return
         for i in range(first, last + 1):
             index = i % self.window_size
-            #seq = self.buffer[index].get
             (packet, current_seq) = self.buffer[index]
+            if current_seq != i:
+                print('neq',i,current_seq)
             self.send_rtp_packet(packet)
 
 
@@ -222,16 +229,16 @@ class Server:
                 self.video_lock.acquire()
                 tuple = self.video.next_frame()
                 self.video_lock.release()
-
                 self.new_video = False
                 if not tuple:
-                    self.video = Video(self.filename)
-                    self.video_lock.acquire()
-                    data, frame_num = self.video.next_frame()
-                    self.video_lock.release()
-
+                    continue
+                    # self.video = Video(self.filename)
+                    # self.video_lock.acquire()
+                    # data, frame_num = self.video.next_frame()
+                    # self.video_lock.release()
                 else:
                     data, frame_num = tuple
+                    print('send:',frame_num)
                 packet_num = self.cal_packet_num(data)
                 packet_list = self.make_rtp_list(data, frame_num)
                 packet_list_index = 0
@@ -258,7 +265,7 @@ class Server:
                     self.send_rtp_packet(packet)
 
                     self.lastInWindow = current_seq
-                    self.current_window_num = self.lastInWindow - self.firstInWindow + 1  # self.current_window_num + 1
+                    self.current_window_num = self.lastInWindow - self.firstInWindow + 1
                     self.lock.release()
             except:
                 print("Connection Error")
