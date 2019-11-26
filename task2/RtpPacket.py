@@ -1,6 +1,6 @@
 import sys
 from time import time
-HEADER_SIZE = 16
+HEADER_SIZE = 18
 
 class RtpPacket:	
 	header = bytearray(HEADER_SIZE)
@@ -30,6 +30,8 @@ class RtpPacket:
 		header[13] = frame_num >> 16 & 255
 		header[14] = frame_num >> 8 & 255
 		header[15] = frame_num & 255
+		header[16] = seqnum >> 24 & 255
+		header[17] = seqnum >> 16 & 255
 
 
 
@@ -49,7 +51,7 @@ class RtpPacket:
 	
 	def seqNum(self):
 		"""Return sequence (frame) number."""
-		seqNum = self.header[2] << 8 | self.header[3]
+		seqNum = self.header[16] << 24 | self.header[17] << 16 | self.header[2] << 8 | self.header[3]
 		return int(seqNum)
 	
 	def timestamp(self):

@@ -55,16 +55,21 @@ class Server:
 
         if cmd == 'SETUP':
             if self.status == 'NOT READY':
-                # Update state
-                print ("SETUP ing")
                 try:
+                    movie_list = ['a.mp4', 'b.mp4']
+                    print(movie_list)
+                    print('str:',str(movie_list))
+
+                    self.client['session'] = randint(100000, 999999)
+                    self.client['frameNumber'] = 0
+                    self.reply_rtsp('List ' + str(movie_list), seq)
                     self.status = 'READY'
                 except:
+                    print('except')
                     self.reply_rtsp('FILE_NOT_FOUND_404', seq)
 
                 # Generate a randomized RTSP session ID
-                self.client['session'] = randint(100000, 999999)
-                self.client['frameNumber'] = 0
+
                 # Send RTSP reply
                 self.reply_rtsp('OK_200', seq)
 
@@ -116,16 +121,25 @@ class Server:
             pass
 
     def reply_rtsp(self, code, seq):
-        if code[0] == 'L':
+        print(code)
+        if code[0] == 'L' and code[1] == 'e':
             # length 300
             reply = 'RTSP/1.0 '+ code + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
-            print('reply')
-            print(reply)
             reply = reply.encode('utf-8')
             connSocket = self.client['rtspSocket'][0]
             connSocket.send(reply)
 
-        if code == 'OK_200':
+        elif code[0] == 'L' and code[1] == 'i':
+            # List ['a.mp4']
+            print('ddddddd')
+            print(code)
+            reply = 'RTSP/1.0 '+ str(code) + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            print('aaa',reply)
+            reply = reply.encode('utf-8')
+            connSocket = self.client['rtspSocket'][0]
+            connSocket.send(reply)
+
+        elif code == 'OK_200':
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
             print('reply')
@@ -357,15 +371,15 @@ class Server:
             PT = 26
 
             seqNum = self.seqNum
-            self.seqNum = (self.seqNum + 1) % 65536
+            self.seqNum = self.seqNum + 1
             #frameNum = frameNumber
             SSRC = 0
-            if remain <= 10240:
+            if remain <= 20460:
                 M = 1
 
                 packet_length = remain
             else:
-                packet_length = 10240
+                packet_length = 20460
 
             rtpPacket = RtpPacket()
             rtpPacket.encode(V, P, X, CC, seqNum,frame_num, M, PT, SSRC, payload[0:packet_length])
