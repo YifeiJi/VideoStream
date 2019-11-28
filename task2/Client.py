@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from playsound import playsound
+import subprocess
 
 stor = {}
 
@@ -56,23 +58,13 @@ class Client(QMainWindow):
         self.movie_slider.setTracking(False)
         self.movie_slider.sliderReleased.connect(self.send_rst)
         self.movie_slider.show()
-        #
-        # self.speed_slider = QSlider(Qt.Vertical, self.movie_window)
-        # self.speed_slider.setGeometry(700, 150, 10, 500)
-        # self.speed_slider.setMinimum(0.5)
-        # self.speed_slider.setMaximum(2)
-        # self.speed_slider.setTickInterval(0.1)
-        # self.speed_slider.setTracking(False)
-        # self.speed_slider.setValue(1)
-        # #self.speed_slider.show()
-        # self.speed_slider.sliderReleased.connect(self.change_speed)
 
-        self.speed_btn1 = QRadioButton("1 倍速",self.movie_window)
-        self.speed_btn1.setChecked(True)
+        self.speed_btn1 = QRadioButton("0.5倍速",self.movie_window)
         self.speed_btn1.setGeometry(700,100,100,50)
         self.speed_btn1.show()
 
-        self.speed_btn2 = QRadioButton("0.5倍速",self.movie_window)
+        self.speed_btn2 = QRadioButton("1 倍速",self.movie_window)
+        self.speed_btn2.setChecked(True)
         self.speed_btn2.setGeometry(700, 200, 100, 50)
         self.speed_btn2.show()
         self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
@@ -105,7 +97,8 @@ class Client(QMainWindow):
         self.frame_to_play = 0
         self.require_buffer = True
         self.buffer = 50
-        self.interval = 1 / 16
+        self.interval = 1 / 24
+        self.fps = 24
         self.recv_v = 0
         self.last_frame_time = 0
         self.alpha = 0.9
@@ -168,8 +161,6 @@ class Client(QMainWindow):
     def exitClient(self):
         """Teardown button handler."""
         self.sendRtspRequest(self.TEARDOWN)
-        # self.master.destroy()  # Close the gui window
-        # self.buttonmaster.destroy()
         try:
             os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
         except:
@@ -202,7 +193,7 @@ class Client(QMainWindow):
         while True:
             self.update.emit()
             num = 1
-            if self.speed_btn2.isChecked():
+            if self.speed_btn1.isChecked():
                 num = 0.5
             if self.speed_btn3.isChecked():
                 num = 1.5
@@ -212,16 +203,12 @@ class Client(QMainWindow):
 
 
     def sendACK(self, num):
-        # self.client['rtpSocket'].sendto(packet, (address, port))
 
         message = 'ACK ' + str(num)
         #print(message)
         # print('sendAck')
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
-    # def change_speed(self):
-    #     num = self.speed_slider.sliderPosition()
-    #     self.speed_slider.setValue(num)
 
     def send_rst(self):
         # self.client['rtpSocket'].sendto(packet, (address, port))
@@ -274,7 +261,7 @@ class Client(QMainWindow):
                         
                         current_frame_num = rtpPacket.framenum()
                         #print('frame', current_frame_num)
-                        #print(self.recv_v)
+                        print(self.recv_v)
                         name = self.writeFrame(payload, self.fileName, current_frame_num)
 
                         #self.update.emit(name)
@@ -301,12 +288,18 @@ class Client(QMainWindow):
         global stor
         """Write the received frame to a temp image file. Return the image file."""
         cachename = CACHE_FILE_NAME + str(self.sessionId) + filename + '_' + str(current_frame_num) + CACHE_FILE_EXT
-        file = open(cachename, "wb")
+        file_path = os.path.join('cache', cachename)
+        file = open(file_path, "wb")
         file.write(data)
         file.close()
         stor[cachename] = data
-
         return cachename
+
+    def playAudio(self,filename):
+        print(filename)
+        if os.path.exists(filename):
+            playsound(filename)
+        #playsound(filename)
 
     def updateMovie(self):
         """Update the image file as video frame in the GUI."""
@@ -328,7 +321,12 @@ class Client(QMainWindow):
             if buffer_ok:
                 self.require_buffer = False
         else:
-
+            if self.frame_to_play % self.fps == 0:
+                sec = self.frame_to_play // self.fps
+                audio_name = self.fileName.replace('.mp4','_')
+                audio_name = audio_name + str(sec) + '.mp3'
+                threading.Thread(target=self.playAudio,args=(audio_name,)).start()
+                # self.playAudio(audio_name)
             pixmap = QPixmap()
             imageFile = self.get_name(self.frame_to_play)
             if imageFile in stor:
