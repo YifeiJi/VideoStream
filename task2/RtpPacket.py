@@ -1,6 +1,6 @@
 import sys
 from time import time
-HEADER_SIZE = 18
+HEADER_SIZE = 19
 
 class RtpPacket:	
 	header = bytearray(HEADER_SIZE)
@@ -32,7 +32,7 @@ class RtpPacket:
 		header[15] = frame_num & 255
 		header[16] = seqnum >> 24 & 255
 		header[17] = seqnum >> 16 & 255
-
+		header[18] = pt
 
 
 		self.header = header
@@ -69,9 +69,11 @@ class RtpPacket:
 			return 0
 		else:
 			return 1
+
 	def payloadType(self):
+		# 1: pic; 2:audio
 		"""Return payload type."""
-		pt = self.header[1] & 127
+		pt = self.header[18]
 		return int(pt)
 	
 	def getPayload(self):

@@ -83,6 +83,8 @@ class Server:
             if self.filename != filename:
                 self.video = Video(filename)
             self.filename = filename
+            self.realname = self.filename
+            self.realname = self.realname.split('.')[0]
             total_frame = self.video.get_length()
             self.reply_rtsp('Length ' + str(total_frame), seq)
 
@@ -253,8 +255,17 @@ class Server:
                 else:
                     data, frame_num = tuple
                     print('send:',frame_num)
-                packet_num = self.cal_packet_num(data)
-                packet_list = self.make_rtp_list(data, frame_num)
+                if frame_num % self.video.fps == 0:
+
+                    sec = int (frame_num // self.video.fps)
+                    audio_file = self.realname + '_' + str(sec) + '.mp3'
+                    audio_file = open(audio_file,'rb')
+                    audio = audio_file.read()
+                    packet_num = self.cal_packet_num(data) + 1
+                    packet_list = self.make_rtp_list(data, frame_num, audio)
+                else:
+                    packet_num = self.cal_packet_num(data)
+                    packet_list = self.make_rtp_list(data, frame_num,None)
                 packet_list_index = 0
 
             if packet_num - packet_list_index + self.current_window_num <= self.window_size:
@@ -357,9 +368,29 @@ class Server:
         except:
             print("Connection Error")
 
-    def make_rtp_list(self, payload, frame_num):
+    def make_rtp_list(self, payload, frame_num, audio):
         packet_list = []
         remain = len(payload)
+
+        if audio:
+            V = 2
+            P = 0
+            X = 0
+            CC = 0
+            M = 0
+            PT = 2
+
+            seqNum = self.seqNum
+            self.seqNum = self.seqNum + 1
+            # frameNum = frameNumber
+            SSRC = 0
+            packet_length = len(audio)
+            print(packet_length)
+            rtpPacket = RtpPacket()
+            rtpPacket.encode(V, P, X, CC, seqNum, frame_num, M, PT, SSRC, audio)
+            packet = rtpPacket.getPacket()
+            packet_list.append((packet, seqNum))
+
 
         while remain > 0:
 
@@ -368,7 +399,7 @@ class Server:
             X = 0
             CC = 0
             M = 0
-            PT = 26
+            PT = 1
 
             seqNum = self.seqNum
             self.seqNum = self.seqNum + 1

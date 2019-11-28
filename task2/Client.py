@@ -153,6 +153,7 @@ class Client(QMainWindow):
         filename = item.text()
         print(filename)
         self.fileName = filename
+        self.realname = filename.split('.')[0]
         self.sendRtspRequest(self.SETUPMOVIE)
         self.frame_to_play = 0
         self.movie_window.show()
@@ -243,6 +244,16 @@ class Client(QMainWindow):
                 # input()
                 if current_seq_num == self.seq_num + 1:  # Discard the late packet
                     self.seq_num = current_seq_num
+                    type = rtpPacket.payloadType()
+                    if type == 2:
+                        current_frame_num = rtpPacket.framenum()
+                        sec = int (current_frame_num // self.fps) + 1
+                        print('audio',sec)
+                        file_name = self.realname + '_' + str(sec) + '.mp3'
+                        file_name = os.path.join('client-cache', file_name)
+                        f = open(file_name,'wb')
+                        f.write(rtpPacket.getPayload())
+                        continue
                     if not payload:
                         payload = rtpPacket.getPayload()
                     else:
@@ -264,7 +275,6 @@ class Client(QMainWindow):
                         print(self.recv_v)
                         name = self.writeFrame(payload, self.fileName, current_frame_num)
 
-                        #self.update.emit(name)
                         payload = None
                 else:
                     self.sendACK(self.seq_num)
@@ -288,7 +298,7 @@ class Client(QMainWindow):
         global stor
         """Write the received frame to a temp image file. Return the image file."""
         cachename = CACHE_FILE_NAME + str(self.sessionId) + filename + '_' + str(current_frame_num) + CACHE_FILE_EXT
-        file_path = os.path.join('cache', cachename)
+        file_path = os.path.join('client-cache', cachename)
         file = open(file_path, "wb")
         file.write(data)
         file.close()
@@ -297,8 +307,10 @@ class Client(QMainWindow):
 
     def playAudio(self,filename):
         print(filename)
-        if os.path.exists(filename):
-            playsound(filename)
+        filepath = os.path.join('client-cache', filename)
+        print(filepath)
+        if os.path.exists(filepath):
+            playsound(filepath)
         #playsound(filename)
 
     def updateMovie(self):
@@ -323,8 +335,7 @@ class Client(QMainWindow):
         else:
             if self.frame_to_play % self.fps == 0:
                 sec = self.frame_to_play // self.fps
-                audio_name = self.fileName.replace('.mp4','_')
-                audio_name = audio_name + str(sec) + '.mp3'
+                audio_name = self.realname + '_' + str(sec) + '.mp3'
                 threading.Thread(target=self.playAudio,args=(audio_name,)).start()
                 # self.playAudio(audio_name)
             pixmap = QPixmap()
