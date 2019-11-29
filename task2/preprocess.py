@@ -5,16 +5,18 @@ import math
 
 
 def make_cache(file_name, cache_path):
-
+    print("Preprocess video: " + file_name)
     real_name = file_name
     real_name = real_name.split('.')[0]
     audio_name = real_name + '.mp3'
     info = ffmpeg.probe(file_name)
     stream = info['streams']
-    print(stream)
+    #print(stream)
     sec = math.ceil(float(stream[0]['duration']))
 
-    cmd_img = 'ffmpeg -i ' + file_name + ' '+ cache_path + '\%d.jpg -v quiet'
+    cmd_img_low = 'ffmpeg -i ' + file_name + ' -qscale:v 31 ' + cache_path + '\%d-low.jpg -v quiet'
+    subprocess.call(cmd_img_low, shell=True)
+    cmd_img = 'ffmpeg -i ' + file_name + ' -qscale:v 2 ' + cache_path + '\%d.jpg -v quiet'
     print(cmd_img)
     subprocess.call(cmd_img, shell=True)
 
@@ -28,7 +30,7 @@ def make_cache(file_name, cache_path):
               (audio_path, i, os.path.join(cache_path, real_name), i)
         subprocess.call(cmd, shell=True)
 
-
-
+    print("Preprocess Done: " + file_name)
+    print('----------')
 
 

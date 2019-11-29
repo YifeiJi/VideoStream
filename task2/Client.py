@@ -20,9 +20,18 @@ CACHE_FILE_EXT = ".jpg"
 class Movie_window(QMainWindow):
     def __init__(self):
         super(Movie_window, self).__init__()
-        self.setFixedSize(1600, 900)
         self.setWindowTitle('Play')
-
+        self.desktop = QApplication.desktop()
+        self.screen_width = self.desktop.width()
+        self.screen_height = self.desktop.height()
+        self.setFixedHeight(self.screen_height//2)
+        self.setFixedWidth(self.screen_width // 2)
+        self.movie_width = self.screen_width * 0.4
+        self.movie_height = self.screen_height * 0.45
+        self.background_label = QLabel(self)
+        self.background_label.setFrameShape(QFrame.Box)
+        self.background_label.setStyleSheet('border-width: 1px;border-style: solid;border - color: rgb(255, 170, 0);background - color: rgb(100, 149, 237);')
+        self.background_label.setGeometry(0,0,self.movie_width,self.movie_height)
 
 class Client(QMainWindow):
     INIT = 0
@@ -43,13 +52,10 @@ class Client(QMainWindow):
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport, filename):
         super(Client, self).__init__()
 
-
-
         self.movie_window = Movie_window()
         self.movie_label = QLabel(self.movie_window)
         self.movie_label.setGeometry(50, 50, 500, 500)
-        self.movie_label.setScaledContents(True)
-        self.movie_label.showFullScreen()
+
         self.movie_label.show()
 
         self.fullscreen_label = QLabel()
@@ -57,28 +63,47 @@ class Client(QMainWindow):
         self.fullscreen_label.hide()
 
         self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
-        self.movie_slider.setGeometry(50, 750, 500, 50)
+        self.movie_slider.setGeometry(0,self.movie_window.height()*0.9,self.movie_window.width(),self.movie_window.height()*0.1)
         self.movie_slider.setMinimum(0)
         self.movie_slider.setTickInterval(1)
         self.movie_slider.setTracking(False)
         self.movie_slider.sliderReleased.connect(self.send_rst)
         self.movie_slider.show()
 
-        self.speed_btn1 = QRadioButton("0.5倍速",self.movie_window)
-        self.speed_btn1.setGeometry(700,100,100,50)
+        self.speed_btn_group = QButtonGroup(self.movie_window)
+        self.speed_btn1 = QRadioButton("0.5倍速", self.movie_window)
+        self.speed_btn1.setGeometry(0.85*self.movie_window.width(),0.1*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
         self.speed_btn1.show()
+        self.speed_btn_group.addButton(self.speed_btn1)
 
-        self.speed_btn2 = QRadioButton("1 倍速",self.movie_window)
+        self.speed_btn2 = QRadioButton("1 倍速", self.movie_window)
         self.speed_btn2.setChecked(True)
-        self.speed_btn2.setGeometry(700, 200, 100, 50)
+        self.speed_btn2.setGeometry(0.85*self.movie_window.width(),0.15*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
         self.speed_btn2.show()
-        self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
-        self.speed_btn3.setGeometry(700, 300, 100, 50)
-        self.speed_btn3.show()
-        self.speed_btn4 = QRadioButton("2 倍速", self.movie_window)
-        self.speed_btn4.setGeometry(700, 400, 100, 50)
-        self.speed_btn4.show()
+        self.speed_btn_group.addButton(self.speed_btn2)
 
+        self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
+        self.speed_btn3.setGeometry(0.85*self.movie_window.width(),0.2*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn3.show()
+        self.speed_btn_group.addButton(self.speed_btn3)
+
+        self.speed_btn4 = QRadioButton("2 倍速",  self.movie_window)
+        self.speed_btn4.setGeometry(0.85*self.movie_window.width(),0.25*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn4.show()
+        self.speed_btn_group.addButton(self.speed_btn4)
+
+
+        self.quality_btn1 = QRadioButton("低清",self.movie_window)
+        self.quality_btn1.setGeometry(0.85*self.movie_window.width(),0.35*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.quality_btn1.show()
+        self.quality_btn1.clicked.connect(self.send_quality)
+
+        self.quality_btn2 = QRadioButton("高清",self.movie_window)
+        self.quality_btn2.setChecked(True)
+        self.quality_btn2.setGeometry(0.85*self.movie_window.width(),0.4*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.quality_btn2.show()
+        self.quality_btn2.clicked.connect(self.send_quality)
+        self.quality = ''
 
         self.movie_list = []
         self.createWidgets()
@@ -102,8 +127,8 @@ class Client(QMainWindow):
         self.frame_to_play = 0
         self.require_buffer = True
         self.buffer = 50
-        self.interval = 1 / 24
         self.fps = 24
+        self.interval = 1 / self.fps
         self.recv_v = 0
         self.last_frame_time = 0
         self.alpha = 0.9
@@ -124,13 +149,11 @@ class Client(QMainWindow):
 
         self.play_button = QPushButton('Play', self.movie_window)
         self.play_button.clicked.connect(self.playMovie)
-        self.play_button.move(600, 600)
-        self.play_button.resize(150, 50)
+        self.play_button.setGeometry(0.85*self.movie_window.width(),0.55*self.movie_window.height(),0.1*self.movie_window.width(),0.1*self.movie_window.height())
 
         self.pause_button = QPushButton('Pause', self.movie_window)
         self.pause_button.clicked.connect(self.pauseMovie)
-        self.pause_button.move(800, 600)
-        self.pause_button.resize(150, 50)
+        self.pause_button.setGeometry(0.85*self.movie_window.width(),0.7*self.movie_window.height(),0.1*self.movie_window.width(),0.1*self.movie_window.height())
 
         self.teardown_button = QPushButton('Teardown', self)
         self.teardown_button.clicked.connect(self.exitClient)
@@ -219,6 +242,19 @@ class Client(QMainWindow):
         # print('sendAck')
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
+    def send_quality(self):
+        num = self.movie_slider.sliderPosition()
+        if self.quality_btn1.isChecked():
+            message = 'QUA 1 ' + str(num)
+            self.quality = '-low'
+        if self.quality_btn2.isChecked():
+            message = 'QUA 2 ' + str(num)
+            self.quality = ''
+        print(message)
+        self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
+
+        return
+
 
     def send_rst(self):
         # self.client['rtpSocket'].sendto(packet, (address, port))
@@ -282,7 +318,12 @@ class Client(QMainWindow):
                         current_frame_num = rtpPacket.framenum()
                         #print('frame', current_frame_num)
                         print(self.recv_v)
-                        name = self.writeFrame(payload, self.fileName, current_frame_num)
+                        quality = rtpPacket.quality()
+                        if quality == 1:
+                            quality = '-low'
+                        else:
+                            quality = ''
+                        name = self.writeFrame(payload, self.fileName, current_frame_num,quality)
 
                         payload = None
                 else:
@@ -300,13 +341,14 @@ class Client(QMainWindow):
                     break
 
     def get_name(self,frame_num):
-        name = CACHE_FILE_NAME + str(self.sessionId) + self.fileName + '_' + str(frame_num) + CACHE_FILE_EXT
+        name = str(self.sessionId) + self.fileName + '-' + str(frame_num) + self.quality + '.jpg'
+        print(name)
         return name
 
-    def writeFrame(self, data, filename, current_frame_num):
+    def writeFrame(self, data, filename, current_frame_num, quality):
         global stor
         """Write the received frame to a temp image file. Return the image file."""
-        cachename = CACHE_FILE_NAME + str(self.sessionId) + filename + '_' + str(current_frame_num) + CACHE_FILE_EXT
+        cachename = str(self.sessionId) + filename + '-' + str(current_frame_num) + quality + '.jpg'
         file_path = os.path.join(self.cache_base, cachename)
         file = open(file_path, "wb")
         file.write(data)
@@ -352,10 +394,12 @@ class Client(QMainWindow):
             if imageFile in stor:
                 data = stor[imageFile]
                 pixmap.loadFromData(data, "JPG")
+                new_pixmap = pixmap.scaled(self.movie_width *self.multiply,self.movie_height*self.multiply,\
+                                           Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
                 if False:
-                    self.fullscreen_label.setPixmap(pixmap)
+                    self.fullscreen_label.setPixmap(new_pixmap)
                 else:
-                    self.movie_label.setPixmap(pixmap)
+                    self.movie_label.setPixmap(new_pixmap)
                 if not self.movie_slider.isSliderDown():
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1
@@ -398,7 +442,6 @@ class Client(QMainWindow):
 
         # SetupMovie request
         elif requestCode == self.SETUPMOVIE:
-
             self.rtspSeq += 1
             # Write the RTSP request to be sent.
             request = 'SETUPMOVIE ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
@@ -474,8 +517,31 @@ class Client(QMainWindow):
                 if p[1] == 'Length':
                     length = int(p[2])
                     print(length)
+                    height = int(p[4])
+                    print(height)
+                    width = int(p[6])
+                    self.fps = int(p[8])
+                    self.interval = 1/self.fps
                     self.movie_slider.setMaximum(length)
                     self.movie_length = length
+                    self.movie_height = height
+                    self.movie_width = width
+                    multiply_height = self.movie_window.movie_height/self.movie_height
+                    multiply_width = self.movie_window.movie_width/self.movie_width
+                    if multiply_height > multiply_width:
+                        self.multiply = multiply_width
+                        margin = (self.movie_window.movie_height - self.multiply * self.movie_height) * 0.5
+                        # print(margin)
+                        # input()
+                        self.movie_label.setGeometry(0,margin, self.movie_width * self.multiply,self.movie_height * self.multiply)
+                    else:
+                        self.multiply = multiply_height
+                        margin = (self.movie_window.movie_width - self.multiply * self.movie_width) * 0.5
+                        # print(margin)
+                        # input()
+                        self.movie_label.setGeometry(margin, 0,self.movie_width * self.multiply,self.movie_height * self.multiply)
+
+
                 elif p[1] == 'List':
                     self.movie_list = ''.join(p[2:])
                     print('list:', ''.join(p[2:]))

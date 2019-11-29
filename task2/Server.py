@@ -57,14 +57,14 @@ class Server:
         while True:
             res = conn.recv(256)
             if res:
-                print ("Received:\n")
-                print(res)
+                #print ("Received:\n")
+                #print(res)
                 self.handleRtsp(res)
 
     def handleRtsp(self,request):
         request = request.decode('utf-8')
         request = request.split('\n')
-        print('request:',request)
+        #print('request:',request)
         #input()
         first_item = request[0].split(' ')
 
@@ -107,7 +107,11 @@ class Server:
             self.realname = self.realname.split('.')[0]
             total_frame = self.video.get_length()
             height, width = self.video.get_size()
-            self.reply_rtsp('Length ' + str(total_frame) + ' Height ' + str(height) + ' Width ' + str(width), seq)
+            fps = self.video.get_fps()
+            #print(fps)
+            #print(str(fps))
+            self.reply_rtsp('Length ' + str(total_frame) + ' Height ' + str(height) + ' Width ' + str(width) +
+                            ' fps ' + str(fps), seq)
 
 
         elif cmd == 'TEARDOWN':
@@ -144,7 +148,7 @@ class Server:
             pass
 
     def reply_rtsp(self, code, seq):
-        print(code)
+        #print(code)
         if code[0] == 'L' and code[1] == 'e':
             # length 300
             reply = 'RTSP/1.0 '+ code + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
@@ -154,10 +158,8 @@ class Server:
 
         elif code[0] == 'L' and code[1] == 'i':
             # List ['a.mp4']
-            print('ddddddd')
-            print(code)
+
             reply = 'RTSP/1.0 '+ str(code) + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
-            print('aaa',reply)
             reply = reply.encode('utf-8')
             connSocket = self.client['rtspSocket'][0]
             connSocket.send(reply)
@@ -165,8 +167,7 @@ class Server:
         elif code == 'OK_200':
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
-            print('reply')
-            print(reply)
+
             reply = reply.encode('utf-8')
             connSocket = self.client['rtspSocket'][0]
             connSocket.send(reply)
@@ -213,6 +214,15 @@ class Server:
                         self.video_lock.acquire()
                         self.video.set_frame(restore_frame)
                         self.video_lock.release()
+
+                elif cmd_list[0] == 'QUA':
+                    print(cmd_list)
+                    if self.video:
+                        self.video_lock.acquire()
+                        self.video.set_quality(int(cmd_list[1]))
+                        self.video.set_frame(int(cmd_list[2]))
+                        self.video_lock.release()
+
                 else:
                     pass
                     #print(cmd_list)
@@ -231,8 +241,8 @@ class Server:
             self.timer = self.timer - 1
             if self.timer == 0:
                 self.lock.acquire()
-                print('resend')
-                print(self.firstInWindow, self.lastInWindow)
+                #print('resend')
+                #print(self.firstInWindow, self.lastInWindow)
                 self.resend_packets(self.firstInWindow, self.lastInWindow)
                 self.timer = self.timeout
                 self.lock.release()
@@ -269,13 +279,10 @@ class Server:
                 self.new_video = False
                 if not tuple:
                     continue
-                    # self.video = Video(self.filename)
-                    # self.video_lock.acquire()
-                    # data, frame_num = self.video.next_frame()
-                    # self.video_lock.release()
+
                 else:
                     data, frame_num = tuple
-                    print('send:',frame_num)
+                    #print('send:',frame_num)
                 if frame_num % self.video.fps == 0:
 
                     sec = int (frame_num // self.video.fps)
@@ -283,10 +290,18 @@ class Server:
                     audio_file = open(audio_file, 'rb')
                     audio = audio_file.read()
                     packet_num = self.cal_packet_num(data) + 1
-                    packet_list = self.make_rtp_list(data, frame_num, audio)
+                    if self.video.quality == '':
+                        quality = 2
+                    else:
+                        quality = 1
+                    packet_list = self.make_rtp_list(data, frame_num, audio, quality)
                 else:
                     packet_num = self.cal_packet_num(data)
-                    packet_list = self.make_rtp_list(data, frame_num,None)
+                    if self.video.quality == '':
+                        quality = 2
+                    else:
+                        quality = 1
+                    packet_list = self.make_rtp_list(data, frame_num, None, quality)
                 packet_list_index = 0
 
             if packet_num - packet_list_index + self.current_window_num <= self.window_size:
@@ -389,7 +404,7 @@ class Server:
         except:
             print("Connection Error")
 
-    def make_rtp_list(self, payload, frame_num, audio):
+    def make_rtp_list(self, payload, frame_num, audio, quality):
         packet_list = []
         remain = len(payload)
 
@@ -406,9 +421,9 @@ class Server:
             # frameNum = frameNumber
             SSRC = 0
             packet_length = len(audio)
-            print(packet_length)
+            #print(packet_length)
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum, frame_num, M, PT, SSRC, audio)
+            rtpPacket.encode(V, P, X, CC, seqNum, frame_num, M, PT, SSRC, audio, quality)
             packet = rtpPacket.getPacket()
             packet_list.append((packet, seqNum))
 
@@ -434,7 +449,7 @@ class Server:
                 packet_length = 20460
 
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum,frame_num, M, PT, SSRC, payload[0:packet_length])
+            rtpPacket.encode(V, P, X, CC, seqNum,frame_num, M, PT, SSRC, payload[0:packet_length], quality)
             packet = rtpPacket.getPacket()
             packet_list.append((packet, seqNum))
             payload = payload[packet_length:]
