@@ -104,6 +104,10 @@ class Client(QMainWindow):
         self.alpha = 0.9
         # 显示在屏幕上
 
+        self.cache_base = 'client-cache'
+        if not os.path.exists(self.cache_base):
+            os.makedirs(self.cache_base)
+
 
     def createWidgets(self):
         """Build GUI."""
@@ -250,7 +254,7 @@ class Client(QMainWindow):
                         sec = int (current_frame_num // self.fps) + 1
                         print('audio',sec)
                         file_name = self.realname + '_' + str(sec) + '.mp3'
-                        file_name = os.path.join('client-cache', file_name)
+                        file_name = os.path.join(self.cache_base, file_name)
                         f = open(file_name,'wb')
                         f.write(rtpPacket.getPayload())
                         continue
@@ -298,7 +302,7 @@ class Client(QMainWindow):
         global stor
         """Write the received frame to a temp image file. Return the image file."""
         cachename = CACHE_FILE_NAME + str(self.sessionId) + filename + '_' + str(current_frame_num) + CACHE_FILE_EXT
-        file_path = os.path.join('client-cache', cachename)
+        file_path = os.path.join(self.cache_base, cachename)
         file = open(file_path, "wb")
         file.write(data)
         file.close()
@@ -307,7 +311,7 @@ class Client(QMainWindow):
 
     def playAudio(self,filename):
         print(filename)
-        filepath = os.path.join('client-cache', filename)
+        filepath = os.path.join(self.cache_base, filename)
         print(filepath)
         if os.path.exists(filepath):
             playsound(filepath)

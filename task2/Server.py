@@ -4,6 +4,8 @@ import threading
 from RtpPacket import *
 from Video import Video
 from time import *
+import os
+
 class Server:
     def __init__(self, rtsp_port, client={}):
         self.rtsp_port = rtsp_port
@@ -24,6 +26,9 @@ class Server:
         self.interval = 0.01
         self.lock = threading.Lock()
         self.video_lock = threading.Lock()
+        self.base_cache = 'server-cache'
+        if not os.path.exists(self.base_cache):
+            os.makedirs(self.base_cache)
 
     def start(self):
         threading.Thread(target=self.listen_rtsp).start()
@@ -258,8 +263,8 @@ class Server:
                 if frame_num % self.video.fps == 0:
 
                     sec = int (frame_num // self.video.fps)
-                    audio_file = self.realname + '_' + str(sec) + '.mp3'
-                    audio_file = open(audio_file,'rb')
+                    audio_file = os.path.join(self.base_cache,self.realname + '_' + str(sec) + '.mp3')
+                    audio_file = open(audio_file, 'rb')
                     audio = audio_file.read()
                     packet_num = self.cal_packet_num(data) + 1
                     packet_list = self.make_rtp_list(data, frame_num, audio)

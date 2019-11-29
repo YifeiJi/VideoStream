@@ -67,21 +67,27 @@ class  Video:
         self.audio = self.filename
         self.audio.split('.')
         self.audio = self.audio[0] + '.' + 'mp3'
+        self.base_cache = 'server-cache'
+        if not os.path.exists(self.base_cache):
+            os.makedirs(self.base_cache)
         print(self.audio)
         self.sec = self.total // self.fps + 1
         if self.total % self.fps == 0:
             self.sec = self.sec - 1
         self.sec = int(self.sec)
-        if not os.path.exists(self.audio):
-            cmd = 'ffmpeg -i ' + self.filename + ' -f mp3 ' + self.audio
+        self.source_audio = os.path.join(self.base_cache, self.audio)
+        if not os.path.exists(self.source_audio):
+            cmd = 'ffmpeg -i ' + self.filename + ' -f mp3 ' + self.source_audio
             print(cmd)
             subprocess.call(cmd, shell=True)
 
             real_name = self.audio
             real_name = real_name.replace('.mp3','')
             print(self.sec)
+
             for i in range(0, self.sec):
-                cmd = 'ffmpeg -i %s.mp3 -ss %d -t 1 -codec copy %s_%d.mp3 -hide_banner -v quiet' % (real_name,i,real_name, i)
+
+                cmd = 'ffmpeg -i %s -ss %d -t 1 -codec copy %s_%d.mp3 -hide_banner -v quiet' % (self.source_audio, i, os.path.join(self.base_cache, real_name), i)
                 subprocess.call(cmd, shell=True)
 
 
