@@ -352,7 +352,7 @@ class Client(QMainWindow):
             if imageFile in stor:
                 data = stor[imageFile]
                 pixmap.loadFromData(data, "JPG")
-                if True:
+                if False:
                     self.fullscreen_label.setPixmap(pixmap)
                 else:
                     self.movie_label.setPixmap(pixmap)

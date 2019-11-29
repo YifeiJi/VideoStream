@@ -5,6 +5,7 @@ from RtpPacket import *
 from Video import Video
 from time import *
 import os
+from preprocess import *
 
 class Server:
     def __init__(self, rtsp_port, client={}):
@@ -40,6 +41,13 @@ class Server:
             s = item
             if s.split('.')[-1] == suffix:
                 self.movie_list.append(item)
+
+        for item in self.movie_list:
+            file_path = os.path.join(self.base_cache, item)
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+                make_cache(item,file_path)
+
 
     def start(self):
         threading.Thread(target=self.listen_rtsp).start()
@@ -271,7 +279,7 @@ class Server:
                 if frame_num % self.video.fps == 0:
 
                     sec = int (frame_num // self.video.fps)
-                    audio_file = os.path.join(self.base_cache,self.realname + '_' + str(sec) + '.mp3')
+                    audio_file = os.path.join(self.base_cache,self.filename,self.realname + '_' + str(sec) + '.mp3')
                     audio_file = open(audio_file, 'rb')
                     audio = audio_file.read()
                     packet_num = self.cal_packet_num(data) + 1
