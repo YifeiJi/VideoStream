@@ -29,6 +29,17 @@ class Server:
         self.base_cache = 'server-cache'
         if not os.path.exists(self.base_cache):
             os.makedirs(self.base_cache)
+        self.movie_list = []
+        self.make_movie_list()
+
+    def make_movie_list(self):
+        files = os.listdir('.')
+        suffix = 'mp4'
+        # print(files)
+        for item in files:
+            s = item
+            if s.split('.')[-1] == suffix:
+                self.movie_list.append(item)
 
     def start(self):
         threading.Thread(target=self.listen_rtsp).start()
@@ -61,13 +72,9 @@ class Server:
         if cmd == 'SETUP':
             if self.status == 'NOT READY':
                 try:
-                    movie_list = ['a.mp4', 'b.mp4']
-                    print(movie_list)
-                    print('str:',str(movie_list))
-
                     self.client['session'] = randint(100000, 999999)
                     self.client['frameNumber'] = 0
-                    self.reply_rtsp('List ' + str(movie_list), seq)
+                    self.reply_rtsp('List ' + str(self.movie_list), seq)
                     self.status = 'READY'
                 except:
                     print('except')
@@ -91,7 +98,8 @@ class Server:
             self.realname = self.filename
             self.realname = self.realname.split('.')[0]
             total_frame = self.video.get_length()
-            self.reply_rtsp('Length ' + str(total_frame), seq)
+            height, width = self.video.get_size()
+            self.reply_rtsp('Length ' + str(total_frame) + ' Height ' + str(height) + ' Width ' + str(width), seq)
 
 
         elif cmd == 'TEARDOWN':

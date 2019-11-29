@@ -49,7 +49,12 @@ class Client(QMainWindow):
         self.movie_label = QLabel(self.movie_window)
         self.movie_label.setGeometry(50, 50, 500, 500)
         self.movie_label.setScaledContents(True)
+        self.movie_label.showFullScreen()
         self.movie_label.show()
+
+        self.fullscreen_label = QLabel()
+        self.fullscreen_label.showFullScreen()
+        self.fullscreen_label.hide()
 
         self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
         self.movie_slider.setGeometry(50, 750, 500, 50)
@@ -347,7 +352,10 @@ class Client(QMainWindow):
             if imageFile in stor:
                 data = stor[imageFile]
                 pixmap.loadFromData(data, "JPG")
-                self.movie_label.setPixmap(pixmap)
+                if True:
+                    self.fullscreen_label.setPixmap(pixmap)
+                else:
+                    self.movie_label.setPixmap(pixmap)
                 if not self.movie_slider.isSliderDown():
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1

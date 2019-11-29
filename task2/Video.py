@@ -64,6 +64,9 @@ class  Video:
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.total = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+
         self.audio = self.filename
         self.audio.split('.')
         self.audio = self.audio[0] + '.' + 'mp3'
@@ -90,6 +93,9 @@ class  Video:
                 cmd = 'ffmpeg -i %s -ss %d -t 1 -codec copy %s_%d.mp3 -hide_banner -v quiet' % (self.source_audio, i, os.path.join(self.base_cache, real_name), i)
                 subprocess.call(cmd, shell=True)
 
+
+    def get_size(self):
+        return self.height, self.width
 
     def get_length(self):
         return self.total
