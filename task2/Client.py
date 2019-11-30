@@ -222,13 +222,18 @@ class Client(QMainWindow):
             self.realname = filename.split('.')[0]
             self.sendRtspRequest(self.SETUPMOVIE)
             self.frame_to_play = 0
-            self.state == self.READY
+            self.movie_slider.setValue(0)
+            #self.movie_label.setPixmap()
+            if self.state == self.PLAYING:
+                self.state = self.PAUSED
             self.movie_window.show()
         return setupMovie
 
     def exitClient(self):
         """Teardown button handler."""
+
         self.sendRtspRequest(self.TEARDOWN)
+        self.seq_num = -1
         try:
             os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
         except:
@@ -278,10 +283,21 @@ class Client(QMainWindow):
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
     def send_quality(self):
+        if self.quality_btn1.isChecked():
+            self.quality = '-low'
+        if self.quality_btn2.isChecked():
+            self.quality = ''
         num = self.movie_slider.sliderPosition()
+        while num < self.movie_length:
+            name = self.get_name(num)
+            if name not in stor:
+                break
+            num = num + 1
+        if num == self.movie_length:
+            num = num - 1
         if self.quality_btn1.isChecked():
             message = 'QUA 1 ' + str(num)
-            self.quality = '-low'
+
         if self.quality_btn2.isChecked():
             message = 'QUA 2 ' + str(num)
             self.quality = ''
@@ -413,7 +429,7 @@ class Client(QMainWindow):
                 up = self.movie_length
             for i in range(self.frame_to_play, up):
                 key = self.get_name(i)
-                #print(key)
+                print(key)
                 if key not in stor:
                     buffer_ok = False
                     break
@@ -477,7 +493,7 @@ class Client(QMainWindow):
             self.requestSent = self.SETUP
 
         # SetupMovie request
-        elif requestCode == self.SETUPMOVIE:
+        elif requestCode == self.SETUPMOVIE and self.state != self.INIT:
             self.rtspSeq += 1
             # Write the RTSP request to be sent.
             request = 'SETUPMOVIE ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
@@ -505,6 +521,7 @@ class Client(QMainWindow):
 
         # Teardown request
         elif requestCode == self.TEARDOWN and not self.state == self.INIT:
+            self.state == self.INIT
             self.rtspSeq += 1
             request = 'TEARDOWN ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
                 self.sessionId)

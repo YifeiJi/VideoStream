@@ -127,6 +127,7 @@ class Server:
 
         elif cmd == 'TEARDOWN':
             self.current_window_num = 0
+            self.seqNum = 0
             self.firstInWindow = 0
             self.lastInWindow = -1
             self.client['event'].set()
@@ -304,6 +305,7 @@ class Server:
                 else:
                     data, frame_num = tuple
                     #print('send:',frame_num)
+                print(frame_num)
                 if frame_num % self.video.fps == 0:
 
                     sec = int (frame_num // self.video.fps)
@@ -316,9 +318,7 @@ class Server:
                         quality = 2
                     else:
                         quality = 1
-                    print('quality')
-                    print(quality)
-                    print(self.video.quality)
+
                     packet_list = self.make_rtp_list(data, frame_num, audio, quality)
                 else:
                     packet_num = self.cal_packet_num(data)
