@@ -8,14 +8,17 @@ import cv2
 
 class  Video:
     def __init__(self,filename,quality=''):
+
         self.filename = filename
         self.quality = quality
         self.frame_to_play = 0
         self.audio = self.filename
-        self.audio.split('.')
+
+        self.audio = self.audio.split('.')
+
         self.audio = self.audio[0] + '.' + 'mp3'
         self.base_cache = os.path.join('server-cache',self.filename)
-
+        print('aaa', self.filename)
         self.info = ffmpeg.probe(self.filename)
         self.stream = self.info['streams']
         self.sec = math.ceil(float(self.stream[0]['duration']))
@@ -27,6 +30,9 @@ class  Video:
         self.fps = self.fps.split('/')
         self.fps = int(int(self.fps[0]) / int(self.fps[1]))
         self.source_audio = os.path.join(self.base_cache, self.audio)
+
+    def get_time(self):
+        return self.sec
 
     def get_size(self):
         return self.height, self.width

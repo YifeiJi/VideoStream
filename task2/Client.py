@@ -167,29 +167,64 @@ class Client(QMainWindow):
         name_list = eval(self.movie_list)
         print(name_list)
         self.list.move(530, 200)
-        self.list.resize(480, 650)
-        self.list.itemDoubleClicked.connect(self.setupMovie)
+        self.list.resize(800, 650)
+        #self.list.itemDoubleClicked.connect(self.setupMovie)
         self.list.show()
 
-        for name in name_list:
-            item = QListWidgetItem(name)
+        for tup in name_list:
+            print(tup)
+            name, des, length = tup
+            if not des:
+                des = ''
+            item_widget = QWidget(self)
+            item_layout = QVBoxLayout()
+
+            control_layout = QHBoxLayout()
+            des_layout = QHBoxLayout()
+
+            name_label = QLabel(name,self)
+            control_layout.addWidget(name_label, alignment=Qt.AlignLeft)
+
+            play_button = QPushButton(self)
+            play_button.setText('观看')
+            play_button.clicked.connect(self.setupMovie_wrapper(name))
+            control_layout.addWidget(play_button, alignment=Qt.AlignRight)
+            item_layout.addLayout(control_layout)
+
+            description_label = QLabel(des, self)
+            des_layout.addWidget(description_label, alignment=Qt.AlignLeft)
+
+            m, s = divmod(length, 60)
+            h, m = divmod(m, 60)
+            time_str = '时长：%02d:%02d:%02d' % (h, m, s)
+            time_label = QLabel(time_str, self)
+            des_layout.addWidget(time_label, alignment=Qt.AlignRight)
+
+            item_layout.addLayout(des_layout)
+
+            item_widget.setLayout(item_layout)
+            item = QListWidgetItem()
+            item.setSizeHint(item_layout.sizeHint())
+            #item.setSizeHint(QSize(200, 50))
             self.list.addItem(item)
+            self.list.setItemWidget(item, item_widget)
 
     def setupConnection(self):
         """Setup button handler."""
         if self.state == self.INIT:
             self.sendRtspRequest(self.SETUP)
 
-    def setupMovie(self,item):
-        """Setup button handler."""
-        filename = item.text()
-        print(filename)
-        self.fileName = filename
-        self.realname = filename.split('.')[0]
-        self.sendRtspRequest(self.SETUPMOVIE)
-        self.frame_to_play = 0
-        self.movie_window.show()
-
+    def setupMovie_wrapper(self,filename):
+        def setupMovie():
+            """Setup button handler."""
+            print(filename)
+            self.fileName = filename
+            self.realname = filename.split('.')[0]
+            self.sendRtspRequest(self.SETUPMOVIE)
+            self.frame_to_play = 0
+            self.state == self.READY
+            self.movie_window.show()
+        return setupMovie
 
     def exitClient(self):
         """Teardown button handler."""
@@ -518,7 +553,8 @@ class Client(QMainWindow):
 
             # Process only if the session ID is the same
             if self.sessionId == session:
-                p = lines[0].split(' ')
+                p = lines[0]
+                p = p.split(' ')
                 if p[1] == 'Length':
                     length = int(p[2])
                     print(length)
@@ -546,10 +582,15 @@ class Client(QMainWindow):
                         # input()
                         self.movie_label.setGeometry(margin, 0,self.movie_width * self.multiply,self.movie_height * self.multiply)
 
-
                 elif p[1] == 'List':
-                    self.movie_list = ''.join(p[2:])
-                    print('list:', ''.join(p[2:]))
+                    p = lines[0]
+                    print(p)
+                    p = p.split(' ')
+                    print('p',p)
+                    p = ' '.join(p[2:])
+                    print('newp',p)
+                    self.movie_list = p
+                    print('list:', p)
                     self.add_sig.emit()
 
                 elif int(p[1]) == 200:

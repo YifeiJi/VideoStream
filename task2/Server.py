@@ -41,13 +41,23 @@ class Server:
         for item in files:
             s = item
             if s.split('.')[-1] == suffix:
-                self.movie_list.append(item)
+                description_name = s[0] + '.txt'
+                print(description_name)
+                if os.path.exists(description_name):
+                    f = open(description_name,'r')
+                    description = f.read()
+                else:
+                    description = ''
+                video = Video(item)
+                length = video.get_time()
+                full_item = (item, description, length)
+                self.movie_list.append(full_item)
 
         for item in self.movie_list:
-            file_path = os.path.join(self.base_cache, item)
+            file_path = os.path.join(self.base_cache, item[0])
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
-                make_cache(item,file_path)
+                make_cache(item[0], file_path)
 
 
     def start(self):
