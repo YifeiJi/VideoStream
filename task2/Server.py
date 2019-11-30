@@ -68,9 +68,8 @@ class Server:
         while True:
             res = conn.recv(256)
             if res:
-                #print ("Received:\n")
-                #print(res)
                 self.handleRtsp(res)
+        print('out')
 
     def handleRtsp(self,request):
         request = request.decode('utf-8')
@@ -131,8 +130,8 @@ class Server:
             self.seqNum = 0
             self.firstInWindow = 0
             self.lastInWindow = -1
-            self.client['event'].set()
             self.reply_rtsp('OK_200', seq)
+            self.client['event'].set()
             self.client['rtpSocket'].close()
 
         elif cmd == 'PLAY':
@@ -219,9 +218,6 @@ class Server:
                         for t in range(self.firstInWindow,ack_num+1):
                             index = t%self.window_size
                             data,ii = self.buffer[index]
-                            if t != ii:
-                                print('recvackfail',ii,t)
-                                #input()
                         self.firstInWindow = ack_num + 1
                         self.current_window_num = self.lastInWindow - self.firstInWindow + 1
                         self.timer = self.timeout
@@ -355,7 +351,7 @@ class Server:
                     self.current_window_num = self.lastInWindow - self.firstInWindow + 1
                     self.lock.release()
             except:
-                print("Connection Error")
+                return
 
     def send_rtp(self):
         new_data = True
@@ -410,6 +406,7 @@ class Server:
                     # self.lock.release()
             except:
                 print("Connection Error")
+                return
 
 
     def cal_packet_num(self, data):

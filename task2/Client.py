@@ -262,8 +262,11 @@ class Client(QMainWindow):
         elif self.state == self.PAUSED:
             self.state = self.PLAYING
             self.send_rst()
+
     def timer(self):
         while True:
+            if self.playEvent.isSet():
+                break
             self.update.emit()
             num = 1
             if self.speed_btn1.isChecked():
@@ -328,6 +331,9 @@ class Client(QMainWindow):
         """Listen for RTP packets."""
         payload = None
         while True:
+            if self.playEvent.isSet():
+                break
+
             try:
                 data = self.rtpSocket.recv(20480)
                 if data:
@@ -616,6 +622,7 @@ class Client(QMainWindow):
                         self.state = self.READY
                         # Open RTP port.
                         self.openRtpPort()
+                        self.playEvent = threading.Event()
                     elif self.requestSent == self.PLAY:
                         self.state = self.PLAYING
                     elif self.requestSent == self.PAUSE:
