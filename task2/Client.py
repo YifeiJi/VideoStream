@@ -223,7 +223,7 @@ class Client(QMainWindow):
             self.sendRtspRequest(self.SETUPMOVIE)
             self.frame_to_play = 0
             self.movie_slider.setValue(0)
-            #self.movie_label.setPixmap()
+            self.movie_label.setPixmap(QPixmap(""))
             if self.state == self.PLAYING:
                 self.state = self.PAUSED
             self.movie_window.show()

@@ -113,6 +113,7 @@ class Server:
         elif cmd == 'SETUPMOVIE':
             if self.filename != filename:
                 self.video = Video(filename)
+                self.video.set_quality(self.quality)
             self.filename = filename
             self.realname = self.filename
             self.realname = self.realname.split('.')[0]
