@@ -25,6 +25,7 @@ class Server:
         self.firstInWindow = 0
         self.lastInWindow = -1
         self.interval = 0.01
+        self.quality = 2
         self.lock = threading.Lock()
         self.video_lock = threading.Lock()
         self.base_cache = 'server-cache'
@@ -123,6 +124,13 @@ class Server:
             self.client['rtpSocket'].close()
 
         elif cmd == 'PLAY':
+            print(request)
+            quality = int(request[-1])
+            print(quality)
+            if quality == 1:
+                print('set')
+                self.video.set_quality(1)
+                self.quality = 1
             self.status = 'PLAYING'
             self.client['rtpSocket'] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.client['event'] = threading.Event()
@@ -220,6 +228,7 @@ class Server:
                     if self.video:
                         self.video_lock.acquire()
                         self.video.set_quality(int(cmd_list[1]))
+                        self.quality = int(cmd_list[1])
                         self.video.set_frame(int(cmd_list[2]))
                         self.video_lock.release()
 
@@ -269,8 +278,10 @@ class Server:
             if self.client['event'].isSet():
                 break
             if not self.video or self.new_video:
+                print('new')
                 if self.filename:
                     self.video = Video(self.filename)
+                    self.video.set_quality(self.quality)
 
             if new_data or self.new_video:
                 self.video_lock.acquire()
@@ -290,10 +301,14 @@ class Server:
                     audio_file = open(audio_file, 'rb')
                     audio = audio_file.read()
                     packet_num = self.cal_packet_num(data) + 1
+
                     if self.video.quality == '':
                         quality = 2
                     else:
                         quality = 1
+                    print('quality')
+                    print(quality)
+                    print(self.video.quality)
                     packet_list = self.make_rtp_list(data, frame_num, audio, quality)
                 else:
                     packet_num = self.cal_packet_num(data)

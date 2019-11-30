@@ -60,6 +60,7 @@ class  Video:
         print('qualitysecond', quality)
         if int(quality) == 1:
             self.quality = '-low'
+            print('set-low')
 
 
 # a = Video('a.mp4')

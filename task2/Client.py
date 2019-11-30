@@ -126,7 +126,7 @@ class Client(QMainWindow):
 
         self.frame_to_play = 0
         self.require_buffer = True
-        self.buffer = 50
+        self.buffer = 10
         self.fps = 24
         self.interval = 1 / self.fps
         self.recv_v = 0
@@ -250,6 +250,7 @@ class Client(QMainWindow):
         if self.quality_btn2.isChecked():
             message = 'QUA 2 ' + str(num)
             self.quality = ''
+        self.require_buffer = True
         print(message)
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
@@ -342,7 +343,7 @@ class Client(QMainWindow):
 
     def get_name(self,frame_num):
         name = str(self.sessionId) + self.fileName + '-' + str(frame_num) + self.quality + '.jpg'
-        print(name)
+        #print(name)
         return name
 
     def writeFrame(self, data, filename, current_frame_num, quality):
@@ -452,8 +453,12 @@ class Client(QMainWindow):
 
         elif requestCode == self.PLAY and self.state == self.READY:
             self.rtspSeq += 1
-            request = 'PLAY ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
-                self.sessionId)
+            if self.quality == '':
+                request = 'PLAY ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
+                self.sessionId) + '\n' + '2'
+            else:
+                request = 'PLAY ' + self.fileName + ' RTSP/1.0\nCSeq: ' + str(self.rtspSeq) + '\nSession: ' + str(
+                    self.sessionId) + '\n' + '1'
             self.requestSent = self.PLAY
 
         # Pause request
@@ -498,8 +503,8 @@ class Client(QMainWindow):
 
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server."""
-        print('Received:')
-        print(data)
+        #print('Received:')
+        #print(data)
         lines = str(data).split('\n')
         seqNum = int(lines[1].split(' ')[1])
 
