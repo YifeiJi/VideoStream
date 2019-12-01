@@ -9,6 +9,7 @@ from preprocess import *
 
 class Server:
     def __init__(self, rtsp_port, client={}):
+        print('rtsp_port',rtsp_port)
         self.rtsp_port = rtsp_port
         self.rtcp_port = self.rtsp_port + 1
         self.client = client
@@ -64,17 +65,20 @@ class Server:
         threading.Thread(target=self.listen_rtsp).start()
 
     def listen_rtsp(self):
-        conn = self.client['rtspSocket'][0]
-        while True:
-            res = conn.recv(256)
-            if res:
-                self.handleRtsp(res)
-        print('out')
+        try:
+            conn = self.client['rtspSocket'][0]
+            while True:
+                res = conn.recv(256)
+                if res:
+                    self.handleRtsp(res)
+        except:
+            return
+
 
     def handleRtsp(self,request):
         request = request.decode('utf-8')
         request = request.split('\n')
-        #print('request:',request)
+        print('request:',request)
         #input()
         first_item = request[0].split(' ')
 
@@ -131,8 +135,14 @@ class Server:
             self.firstInWindow = 0
             self.lastInWindow = -1
             self.reply_rtsp('OK_200', seq)
-            self.client['event'].set()
-            self.client['rtpSocket'].close()
+            if 'event' in self.client:
+                self.client['event'].set()
+            if 'rtpSocket' in self.client:
+                self.client['rtpSocket'].close()
+            #self.client['rtspSocket'].close()
+            self.client['rtspSocket'][0].close()
+            if self.rtcpSocket:
+                self.rtcpSocket.close()
 
         elif cmd == 'PLAY':
             print(request)
@@ -144,6 +154,7 @@ class Server:
                 self.quality = 1
             self.status = 'PLAYING'
             self.client['rtpSocket'] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.client['rtpSocket'].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.client['event'] = threading.Event()
             self.reply_rtsp('OK_200', seq)
             print('start play')
@@ -197,58 +208,59 @@ class Server:
             print ("500 CONNECTION ERROR")
 
     def recvACK(self):
-        while True:
-            if self.client['event'].isSet():
-                break
-            conn = self.rtcpSocket
+        try:
+            while True:
+                if self.client['event'].isSet():
+                    break
+                conn = self.rtcpSocket
 
-            msg = conn.recv(256)
+                msg = conn.recv(256)
 
-            if msg:
-                #print(msg.decode())
-                msg = msg.decode()
-                cmd_list = msg.split(" ")
-                if cmd_list[0] == 'ACK':
-                    ack_num = int(cmd_list[-1])
-                    #print("Received ACK: ")
-                    #print(ack_num)
-                    if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
-                        self.lock.acquire()
-                        #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
-                        for t in range(self.firstInWindow,ack_num+1):
-                            index = t%self.window_size
-                            data,ii = self.buffer[index]
-                        self.firstInWindow = ack_num + 1
-                        self.current_window_num = self.lastInWindow - self.firstInWindow + 1
-                        self.timer = self.timeout
-                        self.lock.release()
-                elif cmd_list[0] == 'RES':
-                    #print(cmd_list)
-                    self.status = 'PLAYING'
-                    restore_frame = int(cmd_list[1])
-                    if self.video:
-                        self.video_lock.acquire()
-                        self.video.set_frame(restore_frame)
-                        self.video_lock.release()
+                if msg:
+                    #print(msg.decode())
+                    msg = msg.decode()
+                    cmd_list = msg.split(" ")
+                    if cmd_list[0] == 'ACK':
+                        ack_num = int(cmd_list[-1])
+                        #print("Received ACK: ")
+                        #print(ack_num)
+                        if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
+                            self.lock.acquire()
+                            #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
+                            for t in range(self.firstInWindow,ack_num+1):
+                                index = t%self.window_size
+                                data,ii = self.buffer[index]
+                            self.firstInWindow = ack_num + 1
+                            self.current_window_num = self.lastInWindow - self.firstInWindow + 1
+                            self.timer = self.timeout
+                            self.lock.release()
+                    elif cmd_list[0] == 'RES':
+                        #print(cmd_list)
+                        self.status = 'PLAYING'
+                        restore_frame = int(cmd_list[1])
+                        if self.video:
+                            self.video_lock.acquire()
+                            self.video.set_frame(restore_frame)
+                            self.video_lock.release()
 
-                elif cmd_list[0] == 'QUA':
-                    print(cmd_list)
-                    if self.video:
-                        self.video_lock.acquire()
-                        self.video.set_quality(int(cmd_list[1]))
-                        self.quality = int(cmd_list[1])
-                        self.video.set_frame(int(cmd_list[2]))
-                        self.video_lock.release()
+                    elif cmd_list[0] == 'QUA':
+                        print(cmd_list)
+                        if self.video:
+                            self.video_lock.acquire()
+                            self.video.set_quality(int(cmd_list[1]))
+                            self.quality = int(cmd_list[1])
+                            self.video.set_frame(int(cmd_list[2]))
+                            self.video_lock.release()
 
-                else:
-                    pass
+                    else:
+                        pass
+        except:
+            return
                     #print(cmd_list)
 
 
     def count_down(self):
         while True:
-            #self.client['event'].wait(0.01)
-            # Stop sending if request is PAUSE or TEARDOWN
             if self.client['event'].isSet():
                 break
             if self.current_window_num == 0:
@@ -484,15 +496,9 @@ class Server:
         # Create a new datagram socket to receive RTP packets from the server
 
         self.rtcpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        # Set the timeout value of the socket to 0.5sec
-        #self.rtcpSocket.settimeout(0.5)
-
+        self.rtcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            # Bind the socket to the address using the RTP port given by the client user
-            #print('rtcpport')
-            #print(self.rtcp_port)
-            #input()
+            print(self.rtcp_port)
             self.rtcpSocket.bind(("", self.rtcp_port))
 
         except:

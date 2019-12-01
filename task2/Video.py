@@ -18,7 +18,6 @@ class  Video:
 
         self.audio = self.audio[0] + '.' + 'mp3'
         self.base_cache = os.path.join('server-cache',self.filename)
-        print('aaa', self.filename)
         self.info = ffmpeg.probe(self.filename)
         self.stream = self.info['streams']
         self.sec = math.ceil(float(self.stream[0]['duration']))

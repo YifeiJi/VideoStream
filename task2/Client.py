@@ -51,7 +51,7 @@ class Client(QMainWindow):
     # Initiation..
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport, filename):
         super(Client, self).__init__()
-
+        self.connected = False
         self.movie_window = Movie_window()
         self.movie_label = QLabel(self.movie_window)
         self.movie_label.setGeometry(50, 50, 500, 500)
@@ -108,7 +108,7 @@ class Client(QMainWindow):
         self.movie_list = []
         self.createWidgets()
         self.serverAddr = serveraddr
-        self.serverPort = int(serverport)
+        self.init_serverPort = int(serverport)
         self.rtpPort = int(rtpport)
         self.fileName = filename
         self.rtspSeq = 0
@@ -400,7 +400,7 @@ class Client(QMainWindow):
 
     def get_name(self,frame_num):
         name = str(self.sessionId) + self.fileName + '-' + str(frame_num) + self.quality + '.jpg'
-        #print(name)
+        print(name)
         return name
 
     def writeFrame(self, data, filename, current_frame_num, quality):
@@ -415,9 +415,9 @@ class Client(QMainWindow):
         return cachename
 
     def playAudio(self,filename):
-        print(filename)
+        #print(filename)
         filepath = os.path.join(self.cache_base, filename)
-        print(filepath)
+        #print(filepath)
         if os.path.exists(filepath):
             playsound(filepath)
         #playsound(filename)
@@ -475,10 +475,25 @@ class Client(QMainWindow):
     def connectToServer(self):
         """Connect to the Server. Start a new RTSP/TCP session."""
         self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.rtspSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
+            print(self.init_serverPort)
+            self.rtspSocket.connect((self.serverAddr, self.init_serverPort))
+            print('connect')
+            self.serverPort = self.rtspSocket.recv(256).decode("utf-8")
+            print(self.serverPort)
+            self.serverPort = self.serverPort.split(' ')[-1]
+            print(self.serverPort)
+            self.serverPort = int(self.serverPort)
+            print(self.serverPort)
+            self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.rtspSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
+
         except:
             tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
+            return
+        self.connected = True
 
     def sendRtspRequest(self, requestCode):
         """Send RTSP request to the server."""
@@ -487,7 +502,10 @@ class Client(QMainWindow):
 
         # Setup request
         if requestCode == self.SETUP and self.state == self.INIT:
+            if not self.connected:
+                self.connectToServer()
             threading.Thread(target=self.recvRtspReply).start()
+
             # Update RTSP sequence number.
             self.rtspSeq += 1
             # Write the RTSP request to be sent.
@@ -543,26 +561,37 @@ class Client(QMainWindow):
 
     def recvRtspReply(self):
         """Receive RTSP reply from the server."""
-        while True:
-            reply = self.rtspSocket.recv(1024)
+        try:
+            while True:
+                reply = self.rtspSocket.recv(1024)
 
-            if reply:
-                self.parseRtspReply(reply.decode("utf-8"))
+                if reply:
+                    self.parseRtspReply(reply.decode("utf-8"))
 
-            # Close the RTSP socket upon requesting Teardown
+                # Close the RTSP socket upon requesting Teardown
 
+                if self.requestSent == self.TEARDOWN:
+                    if self.playEvent:
+                        self.playEvent.set()
+                    self.rtspSocket.shutdown(socket.SHUT_RDWR)
+                    self.rtspSocket.close()
+                    self.state = self.INIT
+                    self.connected = False
+                    return
+        except:
             if self.requestSent == self.TEARDOWN:
                 if self.playEvent:
                     self.playEvent.set()
                 self.rtspSocket.shutdown(socket.SHUT_RDWR)
                 self.rtspSocket.close()
-                return
-                break
+            return
+
 
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server."""
         #print('Received:')
         #print(data)
+
         lines = str(data).split('\n')
         seqNum = int(lines[1].split(' ')[1])
 
@@ -648,7 +677,8 @@ class Client(QMainWindow):
 
             self.rtpSocket.bind(("", self.rtpPort))
         except:
-            tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' % self.rtpPort)
+            #tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' % self.rtpPort)
+            print('cannot open')
         print('successfully open')
 
     def handler(self):

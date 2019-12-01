@@ -1,6 +1,8 @@
 from Server import Server
 import socket
 import os
+import sys
+from random import *
 from preprocess import *
 
 server_cache = 'server-cache'
@@ -24,15 +26,29 @@ for item in movie_list:
 print("All Preprocess Done")
 print('--------------------')
 
-SERVER_PORT = 8000
-rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-rtspSocket.bind(('', SERVER_PORT))
-rtspSocket.listen(5)
+_SERVER_PORT = 8000 #int(sys.argv[1])
+_rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+_rtspSocket.bind(('', _SERVER_PORT))
+_rtspSocket.listen(5)
 
 # Receive client info (address,port) through RTSP/TCP session
 while True:
+
+    con = _rtspSocket.accept()
+    SERVER_PORT = randint(6000, 10000)
+    reply = 'PORT ' + str(SERVER_PORT)
+    reply = reply.encode('utf-8')
+    print(reply)
+    con[0].send(reply)
+
+    rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    rtspSocket.bind(('', SERVER_PORT))
+    rtspSocket.listen(5)
     client = {}
     client['rtspSocket'] = rtspSocket.accept()
+    print('new client')
     server = Server(SERVER_PORT,client)
     server.start()
+    print('stop')
+
 
