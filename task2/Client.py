@@ -394,6 +394,9 @@ class Client(QMainWindow):
         new_bullet = Bullet_label(self.movie_window,num,self.movie_window.movie_width,self.movie_window.movie_height)
         new_bullet.setText(text)
         self.bullet_list.append(new_bullet)
+        message = 'BUL ' + str(num) + ' ' + text
+        print(message)
+        self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
 
 

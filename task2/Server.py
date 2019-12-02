@@ -263,6 +263,13 @@ class Server:
                             self.video.set_frame(int(cmd_list[2]))
                             self.video_lock.release()
 
+                    elif cmd_list[0] == 'BUL':
+                        frame = cmd_list[1]
+                        text = cmd_list[2]
+                        bullet_file = self.realname + '_bullet.txt'
+                        f = open(bullet_file, 'a')
+                        f.write(str(frame) + ' ' + text + '\n')
+                        f.close()
                     else:
                         pass
         except:
