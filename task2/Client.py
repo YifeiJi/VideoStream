@@ -2,6 +2,7 @@ from tkinter import *
 import tkinter.messagebox
 from PIL import Image, ImageTk
 from time import *
+from random import *
 import socket, threading, sys, traceback, os
 from RtpPacket import RtpPacket
 from PyQt5.QtWidgets import *
@@ -19,10 +20,12 @@ bullet_store = {}
 
 
 class Bullet_label(QLabel):
-    def __init__(self,parent,init_frame,limit):
+    def __init__(self,parent,init_frame,limit,limit_y):
         super(Bullet_label, self).__init__()
         self.setParent(parent)
-        self.setGeometry(50,50,50,50)
+        x = int(random() * limit * 0.2)
+        y = int(random() * limit_y * 0.9)
+        self.setGeometry(x,y,50,50)
         self.v_x = 5
         self.init_frame = init_frame
         self.limit = limit
@@ -202,7 +205,10 @@ class Client(QMainWindow):
                     print(line)
                     frame_number = int(line[0])
                     content = ' '.join(line[1:])
-                    bullet_dict[frame_number] = content
+                    if frame_number not in bullet_dict:
+                        bullet_dict[frame_number] = [content]
+                    else:
+                        bullet_dict[frame_number].append(content)
                 print(bullet_dict)
                 bullet_store[name] = bullet_dict
             print(bullet_store)
@@ -238,7 +244,18 @@ class Client(QMainWindow):
             #item.setSizeHint(QSize(200, 50))
             self.list.addItem(item)
             self.list.setItemWidget(item, item_widget)
-            self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height)
+            self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.65)
+
+            self.bullet_editor = QLineEdit(self.movie_window)
+            self.bullet_editor.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height * 0.68,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.22)
+            self.bullet_editor.show()
+
+            self.bullet_send = QPushButton(self.movie_window)
+            self.bullet_send.setText('发送弹幕')
+            self.bullet_send.setGeometry(self.movie_window.width() * 0.7, self.movie_window.movie_height * 0.9,
+                                           self.movie_window.width() * 0.28, self.movie_window.movie_height * 0.05)
+            self.bullet_send.clicked.connect(self.send_bullet)
+            self.bullet_send.hide()
 
     def setupConnection(self):
         """Setup button handler."""
@@ -259,12 +276,14 @@ class Client(QMainWindow):
             for dict_item in self.bullet:
                 print('dict_item',dict_item)
                 frame = int(dict_item)
-                text = self.bullet[dict_item]
+                text_list = self.bullet[dict_item]
                 limit = self.movie_window.movie_width
-                bullet_label = Bullet_label(self.movie_window,frame,limit)
-                bullet_label.setText(text)
-                bullet_label.hide()
-                self.bullet_list.append(bullet_label)
+                limit_y = self.movie_window.movie_height
+                for text in text_list:
+                    bullet_label = Bullet_label(self.movie_window,frame,limit,limit_y)
+                    bullet_label.setText(text)
+                    bullet_label.hide()
+                    self.bullet_list.append(bullet_label)
 
             self.sendRtspRequest(self.SETUPMOVIE)
             self.frame_to_play = 0
@@ -275,6 +294,7 @@ class Client(QMainWindow):
             self.movie_window.show()
             self.play_button.show()
             self.pause_button.show()
+            self.bullet_send.show()
         return setupMovie
 
     def exitClient(self):
@@ -359,6 +379,14 @@ class Client(QMainWindow):
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
         return
+
+    def send_bullet(self):
+        num = self.movie_slider.sliderPosition()
+        text = self.bullet_editor.text()
+        new_bullet = Bullet_label(self.movie_window,num,self.movie_window.movie_width,self.movie_window.movie_height)
+        new_bullet.setText(text)
+        self.bullet_list.append(new_bullet)
+
 
 
     def send_rst(self):
