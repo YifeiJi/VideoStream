@@ -17,7 +17,12 @@ bullet_store = {}
 
 # CACHE_FILE_NAME = "cache-"
 # CACHE_FILE_EXT = ".jpg"
-
+txt_color = [
+    '#4D4DFF', '#FF6EC7', '#00009C','#23238E',
+    '#426F42', '#7F00FF', '#7FFF00', '#70DBDB',
+    '#EBC79E', '#CFB53B', '#FF7F00', '#FF2400',
+    '#DB70DB','#DB7093', '#A68064', '#2F2F4F'
+              ]
 
 class Bullet_label(QLabel):
     def __init__(self,parent,init_frame,limit,limit_y):
@@ -25,10 +30,13 @@ class Bullet_label(QLabel):
         self.setParent(parent)
         x = int(random() * limit * 0.2)
         y = int(random() * limit_y * 0.9)
+        self.color = randint(0, 11)
         self.setGeometry(x,y,50,50)
         self.v_x = 5
         self.init_frame = init_frame
         self.limit = limit
+        self.setStyleSheet('color:' + txt_color[self.color])
+        #("color:#ff6600;");
         #self.x = 50
 
     def update(self, frame):
