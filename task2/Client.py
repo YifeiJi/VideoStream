@@ -12,10 +12,29 @@ from playsound import playsound
 import subprocess
 
 stor = {}
+bullet_store = {}
+
+# CACHE_FILE_NAME = "cache-"
+# CACHE_FILE_EXT = ".jpg"
 
 
-CACHE_FILE_NAME = "cache-"
-CACHE_FILE_EXT = ".jpg"
+class Bullet_label(QLabel):
+    def __init__(self,parent,init_frame,limit):
+        super(Bullet_label, self).__init__()
+        self.setParent(parent)
+        self.setGeometry(50,50,50,50)
+        self.v_x = 5
+        self.init_frame = init_frame
+        self.limit = limit
+        #self.x = 50
+
+    def update(self, frame):
+        self.setGeometry(self.v_x * (frame-self.init_frame),self.y(),self.width(), self.height())
+        if self.x() + self.width() > self.limit or self.x() < 0:
+            self.hide()
+        else:
+            self.show()
+
 
 class Movie_window(QMainWindow):
     def __init__(self):
@@ -24,10 +43,10 @@ class Movie_window(QMainWindow):
         self.desktop = QApplication.desktop()
         self.screen_width = self.desktop.width()
         self.screen_height = self.desktop.height()
-        self.setFixedHeight(self.screen_height//2)
-        self.setFixedWidth(self.screen_width // 2)
-        self.movie_width = self.screen_width * 0.4
-        self.movie_height = self.screen_height * 0.45
+        self.setFixedHeight(self.screen_height * 0.8)
+        self.setFixedWidth(self.screen_width * 0.8)
+        self.movie_width = self.screen_width * 0.5
+        self.movie_height = self.screen_height * 0.7
         self.background_label = QLabel(self)
         self.background_label.setFrameShape(QFrame.Box)
         self.background_label.setStyleSheet('border-width: 1px;border-style: solid;border - color: rgb(255, 170, 0);background - color: rgb(100, 149, 237);')
@@ -53,9 +72,8 @@ class Client(QMainWindow):
         super(Client, self).__init__()
         self.connected = False
         self.movie_window = Movie_window()
+        self.movie_window.show()
         self.movie_label = QLabel(self.movie_window)
-        self.movie_label.setGeometry(50, 50, 500, 500)
-
         self.movie_label.show()
 
         self.fullscreen_label = QLabel()
@@ -63,7 +81,7 @@ class Client(QMainWindow):
         self.fullscreen_label.hide()
 
         self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
-        self.movie_slider.setGeometry(0,self.movie_window.height()*0.9,self.movie_window.width(),self.movie_window.height()*0.1)
+        self.movie_slider.setGeometry(0,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),self.movie_window.movie_width,0.5*(self.movie_window.height()-self.movie_window.movie_height))
         self.movie_slider.setMinimum(0)
         self.movie_slider.setTickInterval(1)
         self.movie_slider.setTracking(False)
@@ -72,39 +90,39 @@ class Client(QMainWindow):
 
         self.speed_btn_group = QButtonGroup(self.movie_window)
         self.speed_btn1 = QRadioButton("0.5倍速", self.movie_window)
-        self.speed_btn1.setGeometry(0.85*self.movie_window.width(),0.1*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn1.setGeometry(0.63*self.movie_window.width(),0.1*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
         self.speed_btn1.show()
         self.speed_btn_group.addButton(self.speed_btn1)
 
         self.speed_btn2 = QRadioButton("1 倍速", self.movie_window)
         self.speed_btn2.setChecked(True)
-        self.speed_btn2.setGeometry(0.85*self.movie_window.width(),0.15*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn2.setGeometry(0.63*self.movie_window.width(),0.15*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
         self.speed_btn2.show()
         self.speed_btn_group.addButton(self.speed_btn2)
 
         self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
-        self.speed_btn3.setGeometry(0.85*self.movie_window.width(),0.2*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn3.setGeometry(0.63*self.movie_window.width(),0.2*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
         self.speed_btn3.show()
         self.speed_btn_group.addButton(self.speed_btn3)
 
         self.speed_btn4 = QRadioButton("2 倍速",  self.movie_window)
-        self.speed_btn4.setGeometry(0.85*self.movie_window.width(),0.25*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.speed_btn4.setGeometry(0.63*self.movie_window.width(),0.25*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
         self.speed_btn4.show()
         self.speed_btn_group.addButton(self.speed_btn4)
 
 
         self.quality_btn1 = QRadioButton("低清",self.movie_window)
-        self.quality_btn1.setGeometry(0.85*self.movie_window.width(),0.35*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.quality_btn1.setGeometry(0.63*self.movie_window.width(),0.35*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
         self.quality_btn1.show()
         self.quality_btn1.clicked.connect(self.send_quality)
 
         self.quality_btn2 = QRadioButton("高清",self.movie_window)
         self.quality_btn2.setChecked(True)
-        self.quality_btn2.setGeometry(0.85*self.movie_window.width(),0.4*self.movie_window.height(),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.quality_btn2.setGeometry(0.63*self.movie_window.width(),0.4*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
         self.quality_btn2.show()
         self.quality_btn2.clicked.connect(self.send_quality)
         self.quality = ''
-
+        self.bullet_list = []
         self.movie_list = []
         self.createWidgets()
         self.serverAddr = serveraddr
@@ -147,14 +165,15 @@ class Client(QMainWindow):
         self.setup_button.move(100, 40)
         self.setup_button.resize(150, 50)
 
-        self.play_button = QPushButton('Play', self.movie_window)
+        self.play_button = QPushButton('开始播放', self.movie_window)
         self.play_button.clicked.connect(self.playMovie)
-        self.play_button.setGeometry(0.85*self.movie_window.width(),0.55*self.movie_window.height(),0.1*self.movie_window.width(),0.1*self.movie_window.height())
+        self.play_button.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        #self.play_button.show()
 
-        self.pause_button = QPushButton('Pause', self.movie_window)
+        self.pause_button = QPushButton('暂停', self.movie_window)
         self.pause_button.clicked.connect(self.pauseMovie)
-        self.pause_button.setGeometry(0.85*self.movie_window.width(),0.7*self.movie_window.height(),0.1*self.movie_window.width(),0.1*self.movie_window.height())
-
+        self.pause_button.setGeometry(self.movie_window.width()*0.88,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        #self.pause_button.show()
         self.teardown_button = QPushButton('Teardown', self)
         self.teardown_button.clicked.connect(self.exitClient)
         self.teardown_button.move(300, 40)
@@ -163,19 +182,30 @@ class Client(QMainWindow):
     def addWidgets(self):
         """Build GUI."""
         # Create Setup button
-        self.list = QListWidget(self)
+        self.list = QListWidget(self.movie_window)
         name_list = eval(self.movie_list)
         print(name_list)
-        self.list.move(530, 200)
-        self.list.resize(800, 650)
+
         #self.list.itemDoubleClicked.connect(self.setupMovie)
         self.list.show()
 
         for tup in name_list:
             print(tup)
-            name, des, length = tup
+            name, des, bullet,length = tup
             if not des:
                 des = ''
+            if bullet:
+                bullet_lines = bullet.split('\n')
+                bullet_dict = {}
+                for line in bullet_lines:
+                    line = line.split(' ')
+                    print(line)
+                    frame_number = int(line[0])
+                    content = ' '.join(line[1:])
+                    bullet_dict[frame_number] = content
+                print(bullet_dict)
+                bullet_store[name] = bullet_dict
+            print(bullet_store)
             item_widget = QWidget(self)
             item_layout = QVBoxLayout()
 
@@ -186,7 +216,7 @@ class Client(QMainWindow):
             control_layout.addWidget(name_label, alignment=Qt.AlignLeft)
 
             play_button = QPushButton(self)
-            play_button.setText('观看')
+            play_button.setText('进入')
             play_button.clicked.connect(self.setupMovie_wrapper(name))
             control_layout.addWidget(play_button, alignment=Qt.AlignRight)
             item_layout.addLayout(control_layout)
@@ -208,6 +238,7 @@ class Client(QMainWindow):
             #item.setSizeHint(QSize(200, 50))
             self.list.addItem(item)
             self.list.setItemWidget(item, item_widget)
+            self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height)
 
     def setupConnection(self):
         """Setup button handler."""
@@ -220,6 +251,21 @@ class Client(QMainWindow):
             print(filename)
             self.fileName = filename
             self.realname = filename.split('.')[0]
+            if self.fileName in bullet_store:
+                self.bullet = bullet_store[self.fileName]
+            else:
+                self.bullet = {}
+            print('self.bullet',self.bullet)
+            for dict_item in self.bullet:
+                print('dict_item',dict_item)
+                frame = int(dict_item)
+                text = self.bullet[dict_item]
+                limit = self.movie_window.movie_width
+                bullet_label = Bullet_label(self.movie_window,frame,limit)
+                bullet_label.setText(text)
+                bullet_label.hide()
+                self.bullet_list.append(bullet_label)
+
             self.sendRtspRequest(self.SETUPMOVIE)
             self.frame_to_play = 0
             self.movie_slider.setValue(0)
@@ -227,6 +273,8 @@ class Client(QMainWindow):
             if self.state == self.PLAYING:
                 self.state = self.PAUSED
             self.movie_window.show()
+            self.play_button.show()
+            self.pause_button.show()
         return setupMovie
 
     def exitClient(self):
@@ -262,6 +310,8 @@ class Client(QMainWindow):
         elif self.state == self.PAUSED:
             self.state = self.PLAYING
             self.send_rst()
+            # for item in self.bullet_list:
+            #     item.show()
 
     def timer(self):
         while True:
@@ -315,6 +365,9 @@ class Client(QMainWindow):
         # self.client['rtpSocket'].sendto(packet, (address, port))
         num = self.movie_slider.sliderPosition()
         self.frame_to_play = num
+
+        # for item in self.bullet_list:
+        #     item.hide()
         while num < self.movie_length:
             name = self.get_name(num)
             if name not in stor:
@@ -326,6 +379,8 @@ class Client(QMainWindow):
                 self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
                 break
             num = num + 1
+        # if self.state == self.PLAYING:
+        #     self.state = self.PAUSED
 
     def listenRtp(self):
         """Listen for RTP packets."""
@@ -400,7 +455,7 @@ class Client(QMainWindow):
 
     def get_name(self,frame_num):
         name = str(self.sessionId) + self.fileName + '-' + str(frame_num) + self.quality + '.jpg'
-        print(name)
+        #print(name)
         return name
 
     def writeFrame(self, data, filename, current_frame_num, quality):
@@ -446,7 +501,10 @@ class Client(QMainWindow):
                 sec = self.frame_to_play // self.fps
                 audio_name = self.realname + '_' + str(sec) + '.mp3'
                 threading.Thread(target=self.playAudio,args=(audio_name,)).start()
-                # self.playAudio(audio_name)
+            for item in self.bullet_list:
+                if item.x() + item.width() <= self.movie_window.movie_width:
+                    item.update(self.frame_to_play)
+
             pixmap = QPixmap()
             imageFile = self.get_name(self.frame_to_play)
             if imageFile in stor:

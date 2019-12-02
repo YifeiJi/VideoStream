@@ -50,7 +50,9 @@ class  Video:
         file_path = os.path.join(self.base_cache, file_name + '.jpg')
         try:
             f = open(file_path, 'rb')
-            return f.read(), self.frame_to_play - 1
+            data = f.read()
+            f.close()
+            return data, self.frame_to_play - 1
         except:
             return None
 

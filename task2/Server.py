@@ -42,16 +42,27 @@ class Server:
         for item in files:
             s = item
             if s.split('.')[-1] == suffix:
-                description_name = s[0] + '.txt'
+                description_name = s[0] + '_des.txt'
                 print(description_name)
                 if os.path.exists(description_name):
                     f = open(description_name,'r')
                     description = f.read()
+                    f.close()
                 else:
                     description = ''
+
+                bullet_name = s[0] + '_bullet.txt'
+                print(bullet_name)
+                if os.path.exists(bullet_name):
+                    f = open(bullet_name, 'r')
+                    bullet = f.read()
+                    f.close()
+                else:
+                    bullet = ''
+
                 video = Video(item)
                 length = video.get_time()
-                full_item = (item, description, length)
+                full_item = (item, description, bullet,length)
                 self.movie_list.append(full_item)
 
         for item in self.movie_list:
@@ -321,6 +332,7 @@ class Server:
                     audio_file = os.path.join(self.base_cache,self.filename,self.realname + '_' + str(sec) + '.mp3')
                     audio_file = open(audio_file, 'rb')
                     audio = audio_file.read()
+                    audio_file.close()
                     packet_num = self.cal_packet_num(data) + 1
 
                     if self.video.quality == '':
