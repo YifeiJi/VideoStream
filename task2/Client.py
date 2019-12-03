@@ -31,7 +31,7 @@ class Bullet_label(QLabel):
         x = int(random() * limit * 0.2)
         y = int(random() * limit_y * 0.9)
         self.color = randint(0, 11)
-        self.setGeometry(x,y,50,50)
+        self.move(x,y)
         self.v_x = 5
         self.init_frame = init_frame
         self.limit = limit
@@ -79,7 +79,7 @@ class Client(QMainWindow):
     update = pyqtSignal()
     add_sig = pyqtSignal()
     # Initiation..
-    def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport, filename):
+    def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport):
         super(Client, self).__init__()
         self.connected = False
         self.movie_window = Movie_window()
@@ -139,7 +139,7 @@ class Client(QMainWindow):
         self.serverAddr = serveraddr
         self.init_serverPort = int(serverport)
         self.rtpPort = int(rtpport)
-        self.fileName = filename
+        self.fileName = ''
         self.rtspSeq = 0
         self.sessionId = 0
         self.requestSent = -1
@@ -211,6 +211,8 @@ class Client(QMainWindow):
                 for line in bullet_lines:
                     line = line.split(' ')
                     print(line)
+                    if len(line) <= 1:
+                        continue
                     frame_number = int(line[0])
                     content = ' '.join(line[1:])
                     if frame_number not in bullet_dict:
@@ -290,6 +292,7 @@ class Client(QMainWindow):
                 for text in text_list:
                     bullet_label = Bullet_label(self.movie_window,frame,limit,limit_y)
                     bullet_label.setText(text)
+                    bullet_label.adjustSize()
                     bullet_label.hide()
                     self.bullet_list.append(bullet_label)
 
@@ -393,7 +396,15 @@ class Client(QMainWindow):
         text = self.bullet_editor.text()
         new_bullet = Bullet_label(self.movie_window,num,self.movie_window.movie_width,self.movie_window.movie_height)
         new_bullet.setText(text)
+        new_bullet.adjustSize()
         self.bullet_list.append(new_bullet)
+        bullet_dict = bullet_store[self.fileName]
+        if num not in bullet_dict:
+            bullet_dict[num] = [text]
+        else:
+            bullet_dict[num].append(text)
+        bullet_store[self.fileName] = bullet_dict
+
         message = 'BUL ' + str(num) + ' ' + text
         print(message)
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
@@ -414,7 +425,6 @@ class Client(QMainWindow):
                 print(message)
                 self.last_frame_time = 0
                 self.recv_v = 0
-                #input()
                 self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
                 break
             num = num + 1
@@ -445,7 +455,7 @@ class Client(QMainWindow):
                     if type == 2:
                         current_frame_num = rtpPacket.framenum()
                         sec = int (current_frame_num // self.fps) + 1
-                        print('audio',sec)
+                        #print('audio',sec)
                         file_name = self.realname + '_' + str(sec) + '.mp3'
                         file_name = os.path.join(self.cache_base, file_name)
                         f = open(file_name,'wb')
@@ -469,7 +479,7 @@ class Client(QMainWindow):
                         
                         current_frame_num = rtpPacket.framenum()
                         #print('frame', current_frame_num)
-                        print(self.recv_v)
+                        #print(self.recv_v)
                         quality = rtpPacket.quality()
                         if quality == 1:
                             quality = '-low'
@@ -541,8 +551,7 @@ class Client(QMainWindow):
                 audio_name = self.realname + '_' + str(sec) + '.mp3'
                 threading.Thread(target=self.playAudio,args=(audio_name,)).start()
             for item in self.bullet_list:
-                if item.x() + item.width() <= self.movie_window.movie_width:
-                    item.update(self.frame_to_play)
+                item.update(self.frame_to_play)
 
             pixmap = QPixmap()
             imageFile = self.get_name(self.frame_to_play)
