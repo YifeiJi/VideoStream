@@ -24,6 +24,7 @@ txt_color = [
     '#DB70DB','#DB7093', '#A68064', '#2F2F4F'
               ]
 
+
 class Bullet_label(QLabel):
     def __init__(self,parent,init_frame,limit,limit_y):
         super(Bullet_label, self).__init__()
@@ -32,12 +33,11 @@ class Bullet_label(QLabel):
         y = int(random() * limit_y * 0.9)
         self.color = randint(0, 11)
         self.move(x,y)
-        self.v_x = 5
+        self.v_x = randint(5,10)
         self.init_frame = init_frame
         self.limit = limit
-        self.setStyleSheet('color:' + txt_color[self.color])
-        #("color:#ff6600;");
-        #self.x = 50
+        self.setStyleSheet('font:bold;font-size:40px;color:' + txt_color[self.color])
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
 
     def update(self, frame):
         self.setGeometry(self.v_x * (frame-self.init_frame),self.y(),self.width(), self.height())
@@ -62,6 +62,7 @@ class Movie_window(QMainWindow):
         self.background_label.setFrameShape(QFrame.Box)
         self.background_label.setStyleSheet('border-width: 1px;border-style: solid;border - color: rgb(255, 170, 0);background - color: rgb(100, 149, 237);')
         self.background_label.setGeometry(0,0,self.movie_width,self.movie_height)
+        self.background_label.hide()
 
 class Client(QMainWindow):
     INIT = 0
@@ -82,60 +83,68 @@ class Client(QMainWindow):
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport):
         super(Client, self).__init__()
         self.connected = False
+        self.fullscreen_mode = False
+        self.grabKeyboard()
         self.movie_window = Movie_window()
         self.movie_window.show()
-        self.movie_label = QLabel(self.movie_window)
-        self.movie_label.show()
+        self.setFocusPolicy(Qt.StrongFocus)
 
+        self.setup_button = QPushButton('开始体验', self.movie_window)
+        self.setup_button.clicked.connect(self.setupConnection)
+        self.setup_button.move(100, 100)
+        self.setup_button.resize(150, 50)
+        self.setup_button.show()
         self.fullscreen_label = QLabel()
+        self.fullscreen_label.setAlignment(Qt.AlignCenter)
         self.fullscreen_label.showFullScreen()
+        self.fullscreen_label.setStyleSheet('background-color: rgb(0, 0, 0)')
         self.fullscreen_label.hide()
 
-        self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
-        self.movie_slider.setGeometry(0,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),self.movie_window.movie_width,0.5*(self.movie_window.height()-self.movie_window.movie_height))
-        self.movie_slider.setMinimum(0)
-        self.movie_slider.setTickInterval(1)
-        self.movie_slider.setTracking(False)
-        self.movie_slider.sliderReleased.connect(self.send_rst)
-        self.movie_slider.show()
-
-        self.speed_btn_group = QButtonGroup(self.movie_window)
-        self.speed_btn1 = QRadioButton("0.5倍速", self.movie_window)
-        self.speed_btn1.setGeometry(0.63*self.movie_window.width(),0.1*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        self.speed_btn1.show()
-        self.speed_btn_group.addButton(self.speed_btn1)
-
-        self.speed_btn2 = QRadioButton("1 倍速", self.movie_window)
-        self.speed_btn2.setChecked(True)
-        self.speed_btn2.setGeometry(0.63*self.movie_window.width(),0.15*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        self.speed_btn2.show()
-        self.speed_btn_group.addButton(self.speed_btn2)
-
-        self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
-        self.speed_btn3.setGeometry(0.63*self.movie_window.width(),0.2*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        self.speed_btn3.show()
-        self.speed_btn_group.addButton(self.speed_btn3)
-
-        self.speed_btn4 = QRadioButton("2 倍速",  self.movie_window)
-        self.speed_btn4.setGeometry(0.63*self.movie_window.width(),0.25*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        self.speed_btn4.show()
-        self.speed_btn_group.addButton(self.speed_btn4)
-
-
-        self.quality_btn1 = QRadioButton("低清",self.movie_window)
-        self.quality_btn1.setGeometry(0.63*self.movie_window.width(),0.35*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        self.quality_btn1.show()
-        self.quality_btn1.clicked.connect(self.send_quality)
-
-        self.quality_btn2 = QRadioButton("高清",self.movie_window)
-        self.quality_btn2.setChecked(True)
-        self.quality_btn2.setGeometry(0.63*self.movie_window.width(),0.4*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        self.quality_btn2.show()
-        self.quality_btn2.clicked.connect(self.send_quality)
-        self.quality = ''
+        # self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
+        # self.movie_slider.setGeometry(0,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),self.movie_window.movie_width,0.5*(self.movie_window.height()-self.movie_window.movie_height))
+        # self.movie_slider.setMinimum(0)
+        # self.movie_slider.setTickInterval(1)
+        # self.movie_slider.setTracking(False)
+        # self.movie_slider.sliderReleased.connect(self.send_rst)
+        # self.movie_slider.show()
+        #
+        # self.speed_btn_group = QButtonGroup(self.movie_window)
+        # self.speed_btn1 = QRadioButton("0.5倍速", self.movie_window)
+        # self.speed_btn1.setGeometry(0.63*self.movie_window.width(),0.1*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.speed_btn1.show()
+        # self.speed_btn_group.addButton(self.speed_btn1)
+        #
+        # self.speed_btn2 = QRadioButton("1 倍速", self.movie_window)
+        # self.speed_btn2.setChecked(True)
+        # self.speed_btn2.setGeometry(0.63*self.movie_window.width(),0.15*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.speed_btn2.show()
+        # self.speed_btn_group.addButton(self.speed_btn2)
+        #
+        # self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
+        # self.speed_btn3.setGeometry(0.63*self.movie_window.width(),0.2*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.speed_btn3.show()
+        # self.speed_btn_group.addButton(self.speed_btn3)
+        #
+        # self.speed_btn4 = QRadioButton("2 倍速",  self.movie_window)
+        # self.speed_btn4.setGeometry(0.63*self.movie_window.width(),0.25*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.speed_btn4.show()
+        # self.speed_btn_group.addButton(self.speed_btn4)
+        #
+        #
+        # self.quality_btn1 = QRadioButton("低清",self.movie_window)
+        # self.quality_btn1.setGeometry(0.63*self.movie_window.width(),0.35*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.quality_btn1.show()
+        # self.quality_btn1.clicked.connect(self.send_quality)
+        #
+        # self.quality_btn2 = QRadioButton("高清",self.movie_window)
+        # self.quality_btn2.setChecked(True)
+        # self.quality_btn2.setGeometry(0.63*self.movie_window.width(),0.4*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
+        # self.quality_btn2.show()
+        # self.quality_btn2.clicked.connect(self.send_quality)
+        # self.quality = ''
         self.bullet_list = []
         self.movie_list = []
-        self.createWidgets()
+        #self.createWidgets()
         self.serverAddr = serveraddr
         self.init_serverPort = int(serverport)
         self.rtpPort = int(rtpport)
@@ -166,33 +175,92 @@ class Client(QMainWindow):
         self.cache_base = 'client-cache'
         if not os.path.exists(self.cache_base):
             os.makedirs(self.cache_base)
-
+        self.hide()
 
     def createWidgets(self):
         """Build GUI."""
         # Create Setup button
-        self.setup_button = QPushButton('Setup', self)
-        self.setup_button.clicked.connect(self.setupConnection)
-        self.setup_button.move(100, 40)
-        self.setup_button.resize(150, 50)
+        self.setup_button.hide()
+        self.movie_window.background_label.show()
 
         self.play_button = QPushButton('开始播放', self.movie_window)
         self.play_button.clicked.connect(self.playMovie)
-        self.play_button.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.1*self.movie_window.width(),0.05*self.movie_window.height())
+        self.play_button.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.08*self.movie_window.width(),0.05*self.movie_window.height())
         #self.play_button.show()
 
-        self.pause_button = QPushButton('暂停', self.movie_window)
+        self.pause_button = QPushButton('暂停播放', self.movie_window)
         self.pause_button.clicked.connect(self.pauseMovie)
-        self.pause_button.setGeometry(self.movie_window.width()*0.88,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.1*self.movie_window.width(),0.05*self.movie_window.height())
-        #self.pause_button.show()
+        self.pause_button.setGeometry(self.movie_window.width()*0.8,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),0.08*self.movie_window.width(),0.05*self.movie_window.height())
+
+        self.fullscreen_button = QPushButton('全屏播放', self.movie_window)
+        self.fullscreen_button.clicked.connect(self.set_fullscreen)
+        self.fullscreen_button.setGeometry(self.movie_window.width() * 0.9, self.movie_window.movie_height + 0.3 * (
+                    self.movie_window.height() - self.movie_window.movie_height), 0.08 * self.movie_window.width(),
+                                      0.05 * self.movie_window.height())
+
+
         self.teardown_button = QPushButton('Teardown', self)
         self.teardown_button.clicked.connect(self.exitClient)
         self.teardown_button.move(300, 40)
         self.teardown_button.resize(150, 50)
 
+        self.movie_label = QLabel(self.movie_window)
+        self.movie_label.show()
+
+        self.movie_slider = QSlider(Qt.Horizontal, self.movie_window)
+        self.movie_slider.setGeometry(0, self.movie_window.movie_height + 0.3 * (
+                    self.movie_window.height() - self.movie_window.movie_height), self.movie_window.movie_width,
+                                      0.5 * (self.movie_window.height() - self.movie_window.movie_height))
+        self.movie_slider.setMinimum(0)
+        self.movie_slider.setTickInterval(1)
+        self.movie_slider.setTracking(False)
+        self.movie_slider.sliderReleased.connect(self.send_rst)
+        self.movie_slider.show()
+
+        self.speed_btn_group = QButtonGroup(self.movie_window)
+        self.speed_btn1 = QRadioButton("0.5 倍速", self.movie_window)
+        self.speed_btn1.setGeometry(0.63 * self.movie_window.width(), 0.1 * self.movie_window.height(),
+                                    0.13 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.speed_btn1.show()
+        self.speed_btn_group.addButton(self.speed_btn1)
+
+        self.speed_btn2 = QRadioButton("1.0 倍速", self.movie_window)
+        self.speed_btn2.setChecked(True)
+        self.speed_btn2.setGeometry(0.63 * self.movie_window.width(), 0.15 * self.movie_window.height(),
+                                    0.13 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.speed_btn2.show()
+        self.speed_btn_group.addButton(self.speed_btn2)
+
+        self.speed_btn3 = QRadioButton("1.5 倍速", self.movie_window)
+        self.speed_btn3.setGeometry(0.63 * self.movie_window.width(), 0.2 * self.movie_window.height(),
+                                    0.13 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.speed_btn3.show()
+        self.speed_btn_group.addButton(self.speed_btn3)
+
+        self.speed_btn4 = QRadioButton("2.0 倍速", self.movie_window)
+        self.speed_btn4.setGeometry(0.63 * self.movie_window.width(), 0.25 * self.movie_window.height(),
+                                    0.12 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.speed_btn4.show()
+        self.speed_btn_group.addButton(self.speed_btn4)
+
+        self.quality_btn1 = QRadioButton("低清", self.movie_window)
+        self.quality_btn1.setGeometry(0.63 * self.movie_window.width(), 0.35 * self.movie_window.height(),
+                                      0.12 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.quality_btn1.show()
+        self.quality_btn1.clicked.connect(self.send_quality)
+
+        self.quality_btn2 = QRadioButton("高清", self.movie_window)
+        self.quality_btn2.setChecked(True)
+        self.quality_btn2.setGeometry(0.63 * self.movie_window.width(), 0.4 * self.movie_window.height(),
+                                      0.12 * self.movie_window.width(), 0.08 * self.movie_window.height())
+        self.quality_btn2.show()
+        self.quality_btn2.clicked.connect(self.send_quality)
+        self.quality = ''
+
     def addWidgets(self):
         """Build GUI."""
         # Create Setup button
+        self.createWidgets()
         self.list = QListWidget(self.movie_window)
         name_list = eval(self.movie_list)
         print(name_list)
@@ -254,15 +322,15 @@ class Client(QMainWindow):
             #item.setSizeHint(QSize(200, 50))
             self.list.addItem(item)
             self.list.setItemWidget(item, item_widget)
-            self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.65)
+            self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.75)
 
             self.bullet_editor = QLineEdit(self.movie_window)
-            self.bullet_editor.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height * 0.68,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.22)
+            self.bullet_editor.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height * 0.78,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.15)
             self.bullet_editor.show()
 
             self.bullet_send = QPushButton(self.movie_window)
             self.bullet_send.setText('发送弹幕')
-            self.bullet_send.setGeometry(self.movie_window.width() * 0.7, self.movie_window.movie_height * 0.9,
+            self.bullet_send.setGeometry(self.movie_window.width() * 0.7, self.movie_window.movie_height * 0.95,
                                            self.movie_window.width() * 0.28, self.movie_window.movie_height * 0.05)
             self.bullet_send.clicked.connect(self.send_bullet)
             self.bullet_send.hide()
@@ -296,6 +364,13 @@ class Client(QMainWindow):
                     bullet_label.hide()
                     self.bullet_list.append(bullet_label)
 
+                    # full_bullet_label = Bullet_label(self.fullscreen_label, frame, self.movie_window.screen_width, self.movie_window.screen_height)
+                    # full_bullet_label.setText(text)
+                    # full_bullet_label.adjustSize()
+                    # full_bullet_label.hide()
+                    # self.full_bullet_list.append(full_bullet_label)
+
+
             self.sendRtspRequest(self.SETUPMOVIE)
             self.frame_to_play = 0
             self.movie_slider.setValue(0)
@@ -305,6 +380,7 @@ class Client(QMainWindow):
             self.movie_window.show()
             self.play_button.show()
             self.pause_button.show()
+            self.fullscreen_button.show()
             self.bullet_send.show()
         return setupMovie
 
@@ -398,6 +474,12 @@ class Client(QMainWindow):
         new_bullet.setText(text)
         new_bullet.adjustSize()
         self.bullet_list.append(new_bullet)
+        #
+        # full_new_bullet = Bullet_label(self.fullscreen_label, num, self.movie_window.screen_width, self.movie_window.screen_height)
+        # full_new_bullet.setText(text)
+        # full_new_bullet.adjustSize()
+        # self.full_bullet_list.append(full_new_bullet)
+
         bullet_dict = bullet_store[self.fileName]
         if num not in bullet_dict:
             bullet_dict[num] = [text]
@@ -518,6 +600,17 @@ class Client(QMainWindow):
         stor[cachename] = data
         return cachename
 
+    def set_fullscreen(self):
+        self.fullscreen_mode = True
+        for item in self.bullet_list:
+            item.setParent(self.fullscreen_label)
+            item.limit = self.movie_window.screen_width
+            item.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.fullscreen_label.show()
+        self.movie_window.hide()
+
+
+
     def playAudio(self,filename):
         #print(filename)
         filepath = os.path.join(self.cache_base, filename)
@@ -525,6 +618,17 @@ class Client(QMainWindow):
         if os.path.exists(filepath):
             playsound(filepath)
         #playsound(filename)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            if self.fullscreen_mode:
+                self.fullscreen_mode = False
+                self.fullscreen_label.hide()
+                self.movie_window.show()
+                for item in self.bullet_list:
+                    item.setParent(self.movie_window)
+                    item.limit = self.movie_window.movie_width
+
 
     def updateMovie(self):
         """Update the image file as video frame in the GUI."""
@@ -550,20 +654,27 @@ class Client(QMainWindow):
                 sec = self.frame_to_play // self.fps
                 audio_name = self.realname + '_' + str(sec) + '.mp3'
                 threading.Thread(target=self.playAudio,args=(audio_name,)).start()
-            for item in self.bullet_list:
-                item.update(self.frame_to_play)
+
 
             pixmap = QPixmap()
             imageFile = self.get_name(self.frame_to_play)
             if imageFile in stor:
                 data = stor[imageFile]
                 pixmap.loadFromData(data, "JPG")
-                new_pixmap = pixmap.scaled(self.movie_width *self.multiply,self.movie_height*self.multiply,\
-                                           Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-                if False:
+
+                if self.fullscreen_mode:
+
+                    new_pixmap = pixmap.scaled(self.movie_width * self.full_multiply, self.movie_height * self.full_multiply, \
+                                               Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
                     self.fullscreen_label.setPixmap(new_pixmap)
+                    for item in self.bullet_list:
+                        item.update(self.frame_to_play)
                 else:
+                    new_pixmap = pixmap.scaled(self.movie_width * self.multiply, self.movie_height * self.multiply, \
+                                               Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
                     self.movie_label.setPixmap(new_pixmap)
+                    for item in self.bullet_list:
+                        item.update(self.frame_to_play)
                 if not self.movie_slider.isSliderDown():
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1
@@ -727,18 +838,22 @@ class Client(QMainWindow):
                     self.movie_width = width
                     multiply_height = self.movie_window.movie_height/self.movie_height
                     multiply_width = self.movie_window.movie_width/self.movie_width
+                    full_multiply_height = self.movie_window.screen_height / self.movie_height
+                    full_multiply_width = self.movie_window.screen_width / self.movie_width
+
                     if multiply_height > multiply_width:
                         self.multiply = multiply_width
                         margin = (self.movie_window.movie_height - self.multiply * self.movie_height) * 0.5
-                        # print(margin)
-                        # input()
                         self.movie_label.setGeometry(0,margin, self.movie_width * self.multiply,self.movie_height * self.multiply)
                     else:
                         self.multiply = multiply_height
                         margin = (self.movie_window.movie_width - self.multiply * self.movie_width) * 0.5
-                        # print(margin)
-                        # input()
                         self.movie_label.setGeometry(margin, 0,self.movie_width * self.multiply,self.movie_height * self.multiply)
+
+                    if full_multiply_height > full_multiply_width:
+                        self.full_multiply = full_multiply_width
+                    else:
+                        self.full_multiply = full_multiply_height
 
                 elif p[1] == 'List':
                     p = lines[0]

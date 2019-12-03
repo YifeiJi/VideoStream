@@ -21,5 +21,4 @@ if __name__ == "__main__":
 
     # Create a new client
     client = Client(None,None, serverAddr, serverPort, rtpPort)
-    client.show()
     sys.exit(app.exec_())
