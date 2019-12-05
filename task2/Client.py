@@ -89,7 +89,7 @@ class Client(QMainWindow):
         self.movie_window = Movie_window()
         self.movie_window.show()
         self.setFocusPolicy(Qt.StrongFocus)
-
+        self.restore_button = None
         self.setup_button = QPushButton('开始体验', self.movie_window)
         self.setup_button.clicked.connect(self.setupConnection)
         self.setup_button.move(100, 100)
@@ -186,8 +186,8 @@ class Client(QMainWindow):
         self.setup_button.hide()
         self.movie_window.background_label.show()
 
-        self.play_button = QPushButton('从头播放', self.movie_window)
-        self.play_button.clicked.connect(self.playMovie)
+        self.play_button = QPushButton('开始播放', self.movie_window)
+        self.play_button.clicked.connect(self.playMovie_wrapper(0))
         self.play_button.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height+0.0*(self.movie_window.height()-self.movie_window.movie_height),0.08*self.movie_window.width(),0.05*self.movie_window.height())
         #self.play_button.show()
 
@@ -384,28 +384,30 @@ class Client(QMainWindow):
             self.fullscreen_button.show()
             self.bullet_send.show()
             if self.restore_point != 0:
-                self.restore_button = QPushButton('从这里播放', self.movie_window)
-                self.restore_button.clicked.connect(self.playMovie)
-                self.restore_button.setGeometry(self.movie_window.width() * 0.6, self.movie_window.movie_height + 0.3 * (
-                            self.movie_window.height() - self.movie_window.movie_height),
-                                             0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
-
 
                 time = int(self.restore_point * self.movie_time / self.movie_length )
 
                 m, s = divmod(time, 60)
                 h, m = divmod(m, 60)
-                time_str = '上次观看到：%02d:%02d:%02d' % (h, m, s)
-                print(self.restore_point, self.movie_time, self.movie_length)
-                print(time_str)
-                self.restore_label = QLabel(time_str,self.movie_window)
-                self.restore_label.setGeometry(self.movie_window.width() * 0.8,
-                                                self.movie_window.movie_height + 0.3 * (
+                time_str = '上次观看到：%02d:%02d:%02d, 点击从此处播放' % (h, m, s)
+                self.restore_button = QPushButton(time_str, self.movie_window)
+                self.restore_button.clicked.connect(self.playMovie_wrapper(self.restore_point))
+                self.restore_button.setGeometry(self.movie_window.width() * 0.75,
+                                                self.movie_window.movie_height + 0.6 * (
                                                         self.movie_window.height() - self.movie_window.movie_height),
                                                 0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
-                self.restore_label.adjustSize()
+
+
+                print(self.restore_point, self.movie_time, self.movie_length)
+                print(time_str)
+                # self.restore_label = QLabel(time_str,self.movie_window)
+                # self.restore_label.setGeometry(self.movie_window.width() * 0.8,
+                #                                 self.movie_window.movie_height + 0.3 * (
+                #                                         self.movie_window.height() - self.movie_window.movie_height),
+                #                                 0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
+                self.restore_button.adjustSize()
                 self.restore_button.show()
-                self.restore_label.show()
+                #self.restore_label.show()
         return setupMovie
 
     def exitClient(self):
@@ -426,28 +428,51 @@ class Client(QMainWindow):
             #self.sendRtspRequest(self.PAUSE)
             self.state = self.PAUSED
 
+
+    def playMovie_wrapper(self,restore_point):
+        def playMovie():
+            """Play button handler."""
+            if self.restore_button:
+                self.restore_button.hide()
+            self.restore_point = restore_point
+            if self.state == self.READY:
+                # Create a new thread to listen for RTP packets
+                threading.Thread(target=self.listenRtp).start()
+                self.require_buffer = True
+                self.frame_to_play = restore_point
+                self.movie_slider.setValue(self.frame_to_play)
+                self.playEvent = threading.Event()
+                self.playEvent.clear()
+                self.sendRtspRequest(self.PLAY)
+                self.send_rst()
+                threading.Thread(target=self.timer).start()
+            elif self.state == self.PAUSED:
+                if restore_point > 0:
+                    self.frame_to_play = restore_point
+                self.movie_slider.setValue(self.frame_to_play)
+                self.state = self.PLAYING
+                self.send_rst()
+        return playMovie
+
     def playMovie(self):
         """Play button handler."""
-        #print(self.state == self.READY)
+        self.restore_button.hide()
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
             threading.Thread(target=self.listenRtp).start()
             self.require_buffer = True
-            self.frame_to_play = self.restore_point
+            # self.frame_to_play = self.restore_point
             self.movie_slider.setValue(self.frame_to_play)
             self.playEvent = threading.Event()
             self.playEvent.clear()
             self.sendRtspRequest(self.PLAY)
             self.send_rst()
-            # self.movie_window.show()
             threading.Thread(target=self.timer).start()
         elif self.state == self.PAUSED:
-            self.frame_to_play = self.restore_point
+            # self.frame_to_play = self.restore_point
             self.movie_slider.setValue(self.frame_to_play)
             self.state = self.PLAYING
             self.send_rst()
-            # for item in self.bullet_list:
-            #     item.show()
 
     def timer(self):
         while True:
