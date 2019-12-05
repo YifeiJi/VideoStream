@@ -36,11 +36,11 @@ class Server:
 
     def make_movie_list(self):
         files = os.listdir('.')
-        suffix = 'mp4'
+        suffix_list = ['avi','mp4']
         # print(files)
         for item in files:
             s = item
-            if s.split('.')[-1] == suffix:
+            if s.split('.')[-1] in suffix_list:
                 description_name = s[0] + '_des.txt'
                 #print(description_name)
                 if os.path.exists(description_name):

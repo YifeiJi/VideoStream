@@ -92,8 +92,9 @@ class Client(QMainWindow):
         self.restore_button = None
         self.setup_button = QPushButton('开始体验', self.movie_window)
         self.setup_button.clicked.connect(self.setupConnection)
-        self.setup_button.move(100, 100)
-        self.setup_button.resize(150, 50)
+
+        self.setup_button.resize(self.movie_window.width() * 0.3, self.movie_window.height()*0.3)
+        self.setup_button.move(0.5* self.movie_window.width()-0.5* self.setup_button.width(),0.5* self.movie_window.height()-0.5* self.setup_button.height())
         self.setup_button.show()
         self.fullscreen_label = QLabel()
         self.fullscreen_label.setAlignment(Qt.AlignCenter)
@@ -160,14 +161,14 @@ class Client(QMainWindow):
         self.frame_to_play = 0
         self.movie_length = 0
         self.restore_point = 0
-        self.move(300, 300)
+        #self.move(300, 300)
         self.setWindowTitle('Client')
         self.update.connect(self.updateMovie)
         self.add_sig.connect(self.addWidgets)
 
         self.frame_to_play = 0
         self.require_buffer = True
-        self.buffer = 10
+        self.buffer = 50
         self.fps = 24
         self.interval = 1 / self.fps
         self.recv_v = 0
@@ -352,6 +353,7 @@ class Client(QMainWindow):
         def setupMovie():
             """Setup button handler."""
             #print(filename)
+            self.buffer = 50
             self.fileName = filename
             self.restore_point = restore_point_store[filename]
             self.realname = filename.split('.')[0]
@@ -615,13 +617,28 @@ class Client(QMainWindow):
 
                         time_expired = cur_time - self.last_frame_time
                         self.last_frame_time = cur_time
+
                         if self.recv_v == 0:
                             self.recv_v = time_expired
                         self.recv_v = self.recv_v * self.alpha + time_expired * (1 - self.alpha)
-                        
+                        print(self.recv_v)
                         current_frame_num = rtpPacket.framenum()
-                        #print('frame', current_frame_num)
-                        #print(self.recv_v)
+
+                        if self.interval < self.recv_v and self.require_buffer:
+                            buffer_in_need = (self.movie_length - self.frame_to_play) * (self.recv_v - self.interval) / self.recv_v
+                            # print('here')
+                            #                             # print(self.buffer)
+                            #                             # print(buffer_in_need)
+
+                            # if int(buffer_in_need) > self.buffer:
+                            #     self.buffer = self.buffer + 1
+                            # if self.buffer < 10:
+                            #     self.buffer = 10
+                        #     input()
+                        #     if buffer_in_need > self.buffer:
+                        #         self.buffer = int(buffer_in_need)
+
+
                         quality = rtpPacket.quality()
                         if quality == 1:
                             quality = '-low'
@@ -672,11 +689,11 @@ class Client(QMainWindow):
 
 
     def playAudio(self,filename):
-        #print(filename)
+        print(filename)
         filepath = os.path.join(self.cache_base, filename)
         #print(filepath)
         if os.path.exists(filepath):
-            playsound(filepath)
+            playsound(filepath,block=False)
         #playsound(filename)
 
     def keyPressEvent(self, e):
@@ -706,12 +723,13 @@ class Client(QMainWindow):
             return
         if self.require_buffer:
             buffer_ok = True
+            print(self.buffer)
             up = self.frame_to_play + self.buffer
-            if up > self.movie_length:
-                up = self.movie_length
+            if up > self.movie_length - 1:
+                up = self.movie_length - 1
             for i in range(self.frame_to_play, up):
                 key = self.get_name(i)
-                print(key)
+                #print(key)
                 if key not in stor:
                     buffer_ok = False
                     break
@@ -748,10 +766,9 @@ class Client(QMainWindow):
                 self.frame_to_play = self.frame_to_play + 1
                 restore_point_store[self.fileName] = self.frame_to_play
             else:
-
+                print('cold')
                 pass
-
-
+                #self.require_buffer = True
 
 
 

@@ -7,12 +7,12 @@ from preprocess import *
 
 server_cache = 'server-cache'
 movie_list = []
-suffix = 'mp4'
+suffix_list = ['avi', 'mp4']
 files = os.listdir('.')
 
 for item in files:
     s = item
-    if s.split('.')[-1] == suffix:
+    if s.split('.')[-1] in suffix_list:
         movie_list.append(item)
 
 for item in movie_list:

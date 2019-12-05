@@ -16,7 +16,7 @@ def make_cache(file_name, cache_path):
 
     cmd_img_low = 'ffmpeg -i ' + file_name + ' -qscale:v 31 ' + cache_path + '\%d-low.jpg -v quiet'
     subprocess.call(cmd_img_low, shell=True)
-    cmd_img = 'ffmpeg -i ' + file_name + ' -qscale:v 2 ' + cache_path + '\%d.jpg -v quiet'
+    cmd_img = 'ffmpeg -i ' + file_name + ' -qscale:v 10 ' + cache_path + '\%d.jpg -v quiet'
     print(cmd_img)
     subprocess.call(cmd_img, shell=True)
 
@@ -26,7 +26,7 @@ def make_cache(file_name, cache_path):
     subprocess.call(cmd, shell=True)
 
     for i in range(0, sec):
-        cmd = 'ffmpeg -i %s -ss %d -t 1 -codec copy %s_%d.mp3 -hide_banner -v quiet' % \
+        cmd = 'ffmpeg -i %s -ss %d -t 1.1 -codec copy %s_%d.mp3 -hide_banner -v quiet' % \
               (audio_path, i, os.path.join(cache_path, real_name), i)
         subprocess.call(cmd, shell=True)
 
