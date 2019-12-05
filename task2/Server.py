@@ -42,7 +42,7 @@ class Server:
             s = item
             if s.split('.')[-1] == suffix:
                 description_name = s[0] + '_des.txt'
-                print(description_name)
+                #print(description_name)
                 if os.path.exists(description_name):
                     f = open(description_name,'r')
                     description = f.read()
@@ -51,7 +51,7 @@ class Server:
                     description = ''
 
                 bullet_name = s[0] + '_bullet.txt'
-                print(bullet_name)
+                #print(bullet_name)
                 if os.path.exists(bullet_name):
                     f = open(bullet_name, 'r')
                     bullet = f.read()
@@ -88,7 +88,7 @@ class Server:
     def handleRtsp(self,request):
         request = request.decode('utf-8')
         request = request.split('\n')
-        print('request:',request)
+        #print('request:',request)
         #input()
         first_item = request[0].split(' ')
 
@@ -119,6 +119,7 @@ class Server:
 
                 # Get the RTP/UDP port from the last line
                 self.client['rtpPort'] = request[2].split(' ')[3]
+                print('rtpport',self.client['rtpPort'])
                 self.openRtcpPort()
 
             else:
@@ -155,11 +156,11 @@ class Server:
                 self.rtcpSocket.close()
 
         elif cmd == 'PLAY':
-            print(request)
+            #print(request)
             quality = int(request[-1])
-            print(quality)
+            #print(quality)
             if quality == 1:
-                print('set')
+                #print('set')
                 self.video.set_quality(1)
                 self.quality = 1
             self.status = 'PLAYING'
@@ -167,7 +168,7 @@ class Server:
             self.client['rtpSocket'].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.client['event'] = threading.Event()
             self.reply_rtsp('OK_200', seq)
-            print('start play')
+            #print('start play')
             self.new_video = True
             threading.Thread(target=self.recvACK).start()
             threading.Thread(target=self.count_down).start()
@@ -177,8 +178,8 @@ class Server:
 
 
         elif cmd == 'PAUSE':
-            print('pause')
-            print(self.status)
+            # print('pause')
+            # print(self.status)
             if self.status == 'PLAYING':
                 self.status = 'READY'
                 self.client['event'].set()
@@ -254,7 +255,7 @@ class Server:
                             self.video_lock.release()
 
                     elif cmd_list[0] == 'QUA':
-                        print(cmd_list)
+                        #print(cmd_list)
                         if self.video:
                             self.video_lock.acquire()
                             self.video.set_quality(int(cmd_list[1]))
@@ -301,8 +302,8 @@ class Server:
         for i in range(first, last + 1):
             index = i % self.window_size
             (packet, current_seq) = self.buffer[index]
-            if current_seq != i:
-                print('neq',i,current_seq)
+            # if current_seq != i:
+            #     print('neq',i,current_seq)
             self.send_rtp_packet(packet)
 
 
@@ -315,7 +316,7 @@ class Server:
             if self.client['event'].isSet():
                 break
             if not self.video or self.new_video:
-                print('new')
+                #print('new')
                 if self.filename:
                     self.video = Video(self.filename)
                     self.video.set_quality(self.quality)
@@ -331,7 +332,7 @@ class Server:
                 else:
                     data, frame_num = tuple
                     #print('send:',frame_num)
-                print(frame_num)
+                #print(frame_num)
                 if frame_num % self.video.fps == 0:
 
                     sec = int (frame_num // self.video.fps)

@@ -61,13 +61,10 @@ class  Video:
         return
 
     def set_quality(self, quality):
-        print('qualityfirst', quality)
         if int(quality) == 2:
             self.quality = ''
-        print('qualitysecond', quality)
         if int(quality) == 1:
             self.quality = '-low'
-            print('set-low')
 
 
 # a = Video('a.mp4')
