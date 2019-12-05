@@ -196,7 +196,7 @@ class Client(QMainWindow):
         self.pause_button.clicked.connect(self.pauseMovie)
         self.pause_button.setGeometry(self.movie_window.width()*0.8,self.movie_window.movie_height,0.08*self.movie_window.width(),0.05*self.movie_window.height())
 
-        self.fullscreen_button = QPushButton('全屏播放', self.movie_window)
+        self.fullscreen_button = QPushButton('切换全屏', self.movie_window)
         self.fullscreen_button.clicked.connect(self.set_fullscreen)
         self.fullscreen_button.setGeometry(self.movie_window.width() * 0.9, self.movie_window.movie_height, 0.08 * self.movie_window.width(),
                                       0.05 * self.movie_window.height())
@@ -295,6 +295,8 @@ class Client(QMainWindow):
                         bullet_dict[frame_number].append(content)
                 print(bullet_dict)
                 bullet_store[name] = bullet_dict
+            else:
+                bullet_store[name] = {}
             print(bullet_store)
             item_widget = QWidget(self)
             item_layout = QVBoxLayout()
@@ -459,7 +461,8 @@ class Client(QMainWindow):
 
     def playMovie(self):
         """Play button handler."""
-        self.restore_button.hide()
+        if self.restore_button:
+            self.restore_button.hide()
         if self.state == self.READY:
             # Create a new thread to listen for RTP packets
             threading.Thread(target=self.listenRtp).start()
@@ -688,8 +691,10 @@ class Client(QMainWindow):
         elif e.key() == Qt.Key_Space:
             if self.fullscreen_mode and self.state == self.PLAYING:
                 self.pauseMovie()
-            if self.fullscreen_mode and self.state == self.PAUSED:
+                self.state = self.PAUSED
+            elif self.fullscreen_mode and self.state == self.PAUSED:
                 self.playMovie()
+                self.state = self.PLAYING
 
 
 
