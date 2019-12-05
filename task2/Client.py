@@ -357,6 +357,9 @@ class Client(QMainWindow):
                 self.bullet = bullet_store[self.fileName]
             else:
                 self.bullet = {}
+
+            for item in self.bullet_list:
+                item.hide()
             self.bullet_list = []
             for dict_item in self.bullet:
                 # print('dict_item',dict_item)
