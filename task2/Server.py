@@ -18,9 +18,9 @@ class Server:
         self.video = None
         self.new_video = False
         self.buffer = []
-        self.timer = 20
-        self.timeout = 20
-        self.window_size = 64
+        self.timer = 3
+        self.timeout = 3
+        self.window_size = 32
         self.current_window_num = 0
         self.firstInWindow = 0
         self.lastInWindow = -1
