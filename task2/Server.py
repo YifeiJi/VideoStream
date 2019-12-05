@@ -9,7 +9,6 @@ from preprocess import *
 
 class Server:
     def __init__(self, rtsp_port, client={}):
-        print('rtsp_port',rtsp_port)
         self.rtsp_port = rtsp_port
         self.rtcp_port = self.rtsp_port + 1
         self.client = client
