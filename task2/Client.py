@@ -346,6 +346,9 @@ class Client(QMainWindow):
 
     def setupConnection(self):
         """Setup button handler."""
+        if not self.connected:
+            warning = QMessageBox.warning(self, '抱歉', '连接失败！', QMessageBox.Yes)
+            return
         if self.state == self.INIT:
             self.sendRtspRequest(self.SETUP)
 
@@ -793,7 +796,8 @@ class Client(QMainWindow):
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
 
         except:
-            tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
+            warning = QMessageBox.warning(self, '抱歉', '连接失败！', QMessageBox.Yes)
+            #tkinter.messagebox.showwarning('Connection Failed', 'Connection to \'%s\' failed.' % self.serverAddr)
             return
         self.connected = True
 
@@ -988,10 +992,10 @@ class Client(QMainWindow):
             print('cannot open')
         print('successfully open')
 
-    def handler(self):
-        """Handler on explicitly closing the GUI window."""
-        self.pauseMovie()
-        if tkinter.messagebox.askokcancel("Quit?", "Are you sure you want to quit?"):
-            self.exitClient()
-        else:  # When the user presses cancel, resume playing.
-            self.playMovie()
+    # def handler(self):
+    #     """Handler on explicitly closing the GUI window."""
+    #     self.pauseMovie()
+    #     if tkinter.messagebox.askokcancel("Quit?", "Are you sure you want to quit?"):
+    #         self.exitClient()
+    #     else:  # When the user presses cancel, resume playing.
+    #         self.playMovie()
