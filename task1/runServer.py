@@ -8,8 +8,7 @@ rtspSocket.listen(5)
 
 # Receive client info (address,port) through RTSP/TCP session
 while True:
-    client = {}
-    client['rtspSocket'] = rtspSocket.accept()
-    server = Server(client)
+    _socket = rtspSocket.accept()
+    server = Server(_socket)
     server.start()
 

@@ -2,17 +2,33 @@ import socket
 from random import *
 import threading
 from RtpPacket import *
+import os
 class Server:
-    def __init__(self, client={}):
-        self.client = client
+    def __init__(self, rtspSocket):
+        self.rtspSocket = rtspSocket
+        self.rtpSocket = None
         self.status = 'NOT READY'
         self.filename = None
+        self.base_path = './picture'
+        self.picture_list = []
+        self.picture_num = 0
+        self.frame_number = 0
+        self.event = None
 
     def start(self):
-        threading.Thread(target=self.listenRtsp).start()
+        self.make_picture_list()
+        threading.Thread(target=self.listen_rtsp).start()
 
-    def listenRtsp(self):
-        conn = self.client['rtspSocket'][0]
+    def make_picture_list(self):
+        files = os.listdir(self.base_path)
+
+        for item in files:
+            if '.jpg' in item:
+                self.picture_list.append(item)
+        self.picture_num = len(self.picture_list)
+
+    def listen_rtsp(self):
+        conn = self.rtspSocket[0]
         while True:
             res = conn.recv(256)
             if res:
@@ -44,30 +60,28 @@ class Server:
                     self.filename = filename
                     self.status = 'READY'
                 except:
-                    self.replyRtsp('FILE_NOT_FOUND_404', seq)
+                    self.reply_rtsp('FILE_NOT_FOUND_404', seq)
 
                 # Generate a randomized RTSP session ID
-                self.client['session'] = randint(100000, 999999)
-                self.client['frameNumber'] = 0
-                # Send RTSP reply
-                self.replyRtsp('OK_200', seq)
-
-                # Get the RTP/UDP port from the last line
-                self.client['rtpPort'] = request[2].split(' ')[3]
+                self.session = randint(100000, 999999)
+                self.frame_number = 0
+                self.reply_rtsp('OK_200', seq)
+                self.rtpPort = request[2].split(' ')[3]
             else:
                 pass
+
         elif cmd == 'TEARDOWN':
-            self.client['event'].set()
-            self.replyRtsp('OK_200', seq)
-            self.client['rtpSocket'].close()
+            self.event.set()
+            self.reply_rtsp('OK_200', seq)
+            self.rtpSocket.close()
 
         elif cmd == 'PLAY':
             self.status = 'PLAYING'
-            self.client["rtpSocket"] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.client['event'] = threading.Event()
-            self.replyRtsp('OK_200', seq)
-            threading.Thread(target=self.listenRtsp).start()
-            self.sendRtp()
+            self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.event = threading.Event()
+            self.reply_rtsp('OK_200', seq)
+            threading.Thread(target=self.listen_rtsp).start()
+            self.send_rtp()
 
 
 
@@ -76,19 +90,19 @@ class Server:
             print(self.status)
             if self.status == 'PLAYING':
                 self.status = 'READY'
-                self.client['event'].set()
-                self.replyRtsp('OK_200', seq)
+                self.event.set()
+                self.reply_rtsp('OK_200', seq)
         else:
             pass
 
-    def replyRtsp(self, code, seq):
+    def reply_rtsp(self, code, seq):
         if code == 'OK_200':
 
-            reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.session)
             print('reply')
             print(reply)
             reply = reply.encode('utf-8')
-            connSocket = self.client['rtspSocket'][0]
+            connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
         elif code == 'FILE_NOT_FOUND_404':
@@ -96,42 +110,44 @@ class Server:
         elif code == 'CON_ERR_500':
             print ("500 CONNECTION ERROR")
 
-    def sendRtp(self):
+    def send_rtp(self):
         #print('send Rtp ready')
         while True:
-            self.client['event'].wait(0.01)
-            #print('send Rtp start')
-            # Stop sending if request is PAUSE or TEARDOWN
-            if self.client['event'].isSet():
-                print('isset')
-                input()
+            self.event.wait(0.01)
+            if self.event.isSet():
                 break
-            frameNumber = self.client['frameNumber']
-            filename = str(frameNumber) + '.jpg'
-            f = open(filename,'rb')
+            filename = self.picture_list[self.frame_number]
+            #str(frameNumber) + '.jpg'
+            print(filename)
+            filepath = os.path.join(self.base_path,filename)
+            f = open(filepath,'rb')
             data = f.read()
             if data:
                 try:
-                    address = self.client['rtspSocket'][1][0]
+                    address = self.rtspSocket[1][0]
                     #print(address)
-                    port = int(self.client['rtpPort'])
-                    #print(port)
-                    #packet = self.makeRtp(data, frameNumber)
-                    #print('packet done')
-                    #print(packet)
-                    packet_list = self.makeRtpList(data,frameNumber)
+                    port = int(self.rtpPort)
+
+                    packet_list = self.make_rtp_list(data, self.frame_number)
+                    print('cold')
                     for packet in packet_list:
-                        self.client['rtpSocket'].sendto(packet, (address, port))
-                    self.client['frameNumber'] = self.client['frameNumber'] + 1
-                    if self.client['frameNumber'] == 35:
-                        self.client['frameNumber'] = 0
+                        self.rtpSocket.sendto(packet, (address, port))
+                    self.frame_number = self.frame_number + 1
+                    if self.frame_number == self.picture_num:
+                        self.frame_number = 0
 
                 except:
-                    print ("Connection Error")
+                    print("Connection Error")
 
-    def makeRtpList(self,payload,frameNumber):
+
+    def make_rtp_list(self,payload,frame_number):
+        print('framenumber')
+
+        print('enter')
         packet_list = []
+        print('c0')
         remain = len(payload)
+        print('c1')
         while remain > 0:
             V = 2
             P = 0
@@ -139,41 +155,21 @@ class Server:
             CC = 0
             M = 0
             PT = 26
-            seqNum = frameNumber
+            seqNum = frame_number
             SSRC = 0
             if remain <= 10240:
                 M = 1
                 packet_length = remain
             else:
                 packet_length = 10240
-
+            print('haha')
             rtpPacket = RtpPacket()
             rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload[0:packet_length])
             packet = rtpPacket.getPacket()
             packet_list.append(packet)
             payload = payload[packet_length:]
             remain = remain - packet_length
+            print(remain)
         return packet_list
 
 
-    def makeRtp(self, payload, frameNbr):
-
-        V = 2
-        P = 0
-        X = 0
-        CC = 0
-        M = 0
-        PT = 26
-        seqNum = frameNbr
-        SSRC = 0
-
-        rtpPacket = RtpPacket()
-        #print('new packet')
-        rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload)
-        #print('encodedone')
-        # Return the RTP packet
-        #print(payload)
-        #input()
-        #print len(rtpPacket.getPacket())
-        #input()
-        return rtpPacket.getPacket()

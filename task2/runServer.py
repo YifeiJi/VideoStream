@@ -35,14 +35,24 @@ _rtspSocket.listen(5)
 while True:
 
     con = _rtspSocket.accept()
-    SERVER_PORT = randint(6000, 10000)
+    while True:
+        SERVER_PORT = randint(6000, 10000)
+        try:
+            if SERVER_PORT == _SERVER_PORT:
+                continue
+            rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            rtspSocket.bind(('', SERVER_PORT))
+
+            break
+        except:
+            continue
+
     reply = 'PORT ' + str(SERVER_PORT)
     reply = reply.encode('utf-8')
     print(reply)
     con[0].send(reply)
 
-    rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    rtspSocket.bind(('', SERVER_PORT))
+
     rtspSocket.listen(5)
     rtspSocket = rtspSocket.accept()
     print('new client')
