@@ -4,9 +4,9 @@ import threading
 from RtpPacket import *
 import os
 class Server:
-    def __init__(self, rtspSocket):
-        self.rtspSocket = rtspSocket
-        self.rtpSocket = None
+    def __init__(self, rtsp_socket):
+        self.rtsp_socket = rtsp_socket
+        self.rtp_socket = None
         self.status = 'NOT READY'
         self.filename = None
         self.base_path = './picture'
@@ -28,110 +28,106 @@ class Server:
         self.picture_num = len(self.picture_list)
 
     def listen_rtsp(self):
-        conn = self.rtspSocket[0]
+        conn = self.rtsp_socket[0]
         while True:
             res = conn.recv(256)
             if res:
-                print ("Received:\n")
-                print(res)
-                self.handleRtsp(res)
+                # print ("Received:\n")
+                # print(res)
+                self.handle_rtsp(res)
 
-    def handleRtsp(self,request):
+    def handle_rtsp(self,request):
         request = request.decode('utf-8')
         request = request.split('\n')
-        print('request:',request)
+        # print('request:',request)
         first_item = request[0].split(' ')
 
         cmd = first_item[0]
-        print('cmd:',cmd)
+        # print('cmd:',cmd)
 
         filename = first_item[1]
-        print('filename:',filename)
+        # print('filename:',filename)
 
         seq = request[1].split(' ')[1]
-        print('seq:', seq)
+        # print('seq:', seq)
 
         if cmd == 'SETUP':
 
             if self.status == 'NOT READY':
-                # Update state
-                print ("SETUP ing")
+
                 try:
                     self.filename = filename
                     self.status = 'READY'
                 except:
-                    self.reply_rtsp('FILE_NOT_FOUND_404', seq)
+                    self.reply_rtsp(404, seq)
 
                 # Generate a randomized RTSP session ID
                 self.session = randint(100000, 999999)
                 self.frame_number = 0
-                self.reply_rtsp('OK_200', seq)
+                self.reply_rtsp(200, seq)
                 self.rtpPort = request[2].split(' ')[3]
             else:
                 pass
 
         elif cmd == 'TEARDOWN':
             self.event.set()
-            self.reply_rtsp('OK_200', seq)
-            self.rtpSocket.close()
+            self.reply_rtsp(200, seq)
+            self.rtp_socket.close()
 
         elif cmd == 'PLAY':
             self.status = 'PLAYING'
-            self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.rtp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.event = threading.Event()
-            self.reply_rtsp('OK_200', seq)
+            self.reply_rtsp(200, seq)
             threading.Thread(target=self.listen_rtsp).start()
             self.send_rtp()
 
 
 
         elif cmd == 'PAUSE':
-            print('pause')
-            print(self.status)
+            # print('pause')
+            # print(self.status)
             if self.status == 'PLAYING':
                 self.status = 'READY'
                 self.event.set()
-                self.reply_rtsp('OK_200', seq)
+                self.reply_rtsp(200, seq)
         else:
             pass
 
     def reply_rtsp(self, code, seq):
-        if code == 'OK_200':
+        if code == 200:
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.session)
-            print('reply')
-            print(reply)
+            # print('reply')
+            # print(reply)
             reply = reply.encode('utf-8')
-            connSocket = self.rtspSocket[0]
-            connSocket.send(reply)
-
-        elif code == 'FILE_NOT_FOUND_404':
-            print ("404 NOT FOUND")
-        elif code == 'CON_ERR_500':
-            print ("500 CONNECTION ERROR")
+            conn_socket = self.rtsp_socket[0]
+            conn_socket.send(reply)
+        else:
+            print('Error')
+            return
 
     def send_rtp(self):
-        #print('send Rtp ready')
         while True:
             self.event.wait(0.01)
             if self.event.isSet():
                 break
             filename = self.picture_list[self.frame_number]
             #str(frameNumber) + '.jpg'
-            print(filename)
+            #print(filename)
             filepath = os.path.join(self.base_path,filename)
             f = open(filepath,'rb')
             data = f.read()
             if data:
                 try:
-                    address = self.rtspSocket[1][0]
+                    address = self.rtsp_socket[1][0]
                     #print(address)
                     port = int(self.rtpPort)
 
                     packet_list = self.make_rtp_list(data, self.frame_number)
-                    print('cold')
+
                     for packet in packet_list:
-                        self.rtpSocket.sendto(packet, (address, port))
+                        self.rtp_socket.sendto(packet, (address, port))
                     self.frame_number = self.frame_number + 1
                     if self.frame_number == self.picture_num:
                         self.frame_number = 0
@@ -141,13 +137,8 @@ class Server:
 
 
     def make_rtp_list(self,payload,frame_number):
-        print('framenumber')
-
-        print('enter')
         packet_list = []
-        print('c0')
         remain = len(payload)
-        print('c1')
         while remain > 0:
             V = 2
             P = 0
@@ -162,14 +153,12 @@ class Server:
                 packet_length = remain
             else:
                 packet_length = 10240
-            print('haha')
             rtpPacket = RtpPacket()
             rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload[0:packet_length])
             packet = rtpPacket.getPacket()
             packet_list.append(packet)
             payload = payload[packet_length:]
             remain = remain - packet_length
-            print(remain)
         return packet_list
 
 

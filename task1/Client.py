@@ -147,7 +147,7 @@ class Client:
 	def updateMovie(self, imageFile):
 		"""Update the image file as video frame in the GUI."""
 		photo = ImageTk.PhotoImage(Image.open(imageFile))
-		self.label.configure(image = photo, height=960)
+		self.label.configure(image = photo, height=800)
 		self.label.image = photo
 		
 	def connectToServer(self):
