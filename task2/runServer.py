@@ -44,10 +44,9 @@ while True:
     rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     rtspSocket.bind(('', SERVER_PORT))
     rtspSocket.listen(5)
-    client = {}
-    client['rtspSocket'] = rtspSocket.accept()
+    rtspSocket = rtspSocket.accept()
     print('new client')
-    server = Server(SERVER_PORT,client)
+    server = Server(SERVER_PORT,rtspSocket)
     server.start()
     print('stop')
 

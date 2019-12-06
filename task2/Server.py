@@ -8,15 +8,17 @@ import os
 from preprocess import *
 
 class Server:
-    def __init__(self, rtsp_port, client={}):
+    def __init__(self, rtsp_port, rtspSocket):
         self.rtsp_port = rtsp_port
         self.rtcp_port = self.rtsp_port + 1
-        self.client = client
+        self.rtpSocket = None
+        self.rtspSocket = rtspSocket
         self.status = 'NOT READY'
         self.filename = None
         self.seqNum = 0
         self.video = None
         self.new_video = False
+        self.event = None
         self.buffer = []
         self.timer = 3
         self.timeout = 3
@@ -76,7 +78,7 @@ class Server:
 
     def listen_rtsp(self):
         try:
-            conn = self.client['rtspSocket'][0]
+            conn = self.rtspSocket[0]
             while True:
                 res = conn.recv(256)
                 if res:
@@ -104,8 +106,8 @@ class Server:
         if cmd == 'SETUP':
             if self.status == 'NOT READY':
                 try:
-                    self.client['session'] = randint(100000, 999999)
-                    self.client['frameNumber'] = 0
+                    self.session = randint(100000, 999999)
+                    self.frameNumber = 0
                     self.reply_rtsp('List ' + str(self.movie_list), seq)
                     self.status = 'READY'
                 except:
@@ -118,8 +120,8 @@ class Server:
                 self.reply_rtsp('OK_200', seq)
 
                 # Get the RTP/UDP port from the last line
-                self.client['rtpPort'] = request[2].split(' ')[3]
-                print('rtpport',self.client['rtpPort'])
+                self.rtpPort = request[2].split(' ')[3]
+                print('rtpport',self.rtpPort)
                 self.openRtcpPort()
 
             else:
@@ -146,12 +148,12 @@ class Server:
             self.firstInWindow = 0
             self.lastInWindow = -1
             self.reply_rtsp('OK_200', seq)
-            if 'event' in self.client:
-                self.client['event'].set()
-            if 'rtpSocket' in self.client:
-                self.client['rtpSocket'].close()
-            #self.client['rtspSocket'].close()
-            self.client['rtspSocket'][0].close()
+            if self.event:
+                self.event.set()
+            if self.rtpSocket:
+                self.rtpSocket.close()
+
+            self.rtspSocket[0].close()
             if self.rtcpSocket:
                 self.rtcpSocket.close()
 
@@ -164,9 +166,9 @@ class Server:
                 self.video.set_quality(1)
                 self.quality = 1
             self.status = 'PLAYING'
-            self.client['rtpSocket'] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.client['rtpSocket'].setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.client['event'] = threading.Event()
+            self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.rtpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.event = threading.Event()
             self.reply_rtsp('OK_200', seq)
             #print('start play')
             self.new_video = True
@@ -182,7 +184,7 @@ class Server:
             # print(self.status)
             if self.status == 'PLAYING':
                 self.status = 'READY'
-                self.client['event'].set()
+                self.event.set()
                 self.reply_rtsp('OK_200', seq)
 
         else:
@@ -192,25 +194,25 @@ class Server:
         #print(code)
         if code[0] == 'L' and code[1] == 'e':
             # length 300
-            reply = 'RTSP/1.0 '+ code + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            reply = 'RTSP/1.0 '+ code + '\nCSeq: ' + seq + '\nSession: ' + str(self.session)
             reply = reply.encode('utf-8')
-            connSocket = self.client['rtspSocket'][0]
+            connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
         elif code[0] == 'L' and code[1] == 'i':
             # List ['a.mp4']
 
-            reply = 'RTSP/1.0 '+ str(code) + '\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            reply = 'RTSP/1.0 '+ str(code) + '\nCSeq: ' + seq + '\nSession: ' + str(self.session)
             reply = reply.encode('utf-8')
-            connSocket = self.client['rtspSocket'][0]
+            connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
         elif code == 'OK_200':
 
-            reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.client['session'])
+            reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.session)
 
             reply = reply.encode('utf-8')
-            connSocket = self.client['rtspSocket'][0]
+            connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
         elif code == 'FILE_NOT_FOUND_404':
@@ -221,7 +223,7 @@ class Server:
     def recvACK(self):
         try:
             while True:
-                if self.client['event'].isSet():
+                if self.event.isSet():
                     break
                 conn = self.rtcpSocket
 
@@ -279,7 +281,7 @@ class Server:
 
     def count_down(self):
         while True:
-            if self.client['event'].isSet():
+            if self.event.isSet():
                 break
             if self.current_window_num == 0:
                 self.timer = self.timeout
@@ -313,7 +315,7 @@ class Server:
         while True:
             #self.client['event'].wait(0.01)
             # Stop sending if request is PAUSE or TEARDOWN
-            if self.client['event'].isSet():
+            if self.event.isSet():
                 break
             if not self.video or self.new_video:
                 #print('new')
@@ -388,9 +390,8 @@ class Server:
         new_data = True
         packet_list_index = 0
         while True:
-            #self.client['event'].wait(0.01)
             # Stop sending if request is PAUSE or TEARDOWN
-            if self.client['event'].isSet():
+            if self.event.isSet():
                 break
             if not self.video or self.new_video:
                 if self.filename:
@@ -450,10 +451,10 @@ class Server:
 
     def send_rtp_packet(self, packet):
         try:
-            address = self.client['rtspSocket'][1][0]
-            port = int(self.client['rtpPort'])
-            self.client['rtpSocket'].sendto(packet, (address, port))
-            self.client['frameNumber'] = self.client['frameNumber'] + 1
+            address = self.rtspSocket[1][0]
+            port = int(self.rtpPort)
+            self.rtpSocket.sendto(packet, (address, port))
+            self.frameNumber = self.frameNumber + 1
 
         except:
             print("Connection Error")
