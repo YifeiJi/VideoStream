@@ -82,12 +82,12 @@ class Server:
             while True:
                 res = conn.recv(256)
                 if res:
-                    self.handleRtsp(res)
+                    self.handle_rtsp(res)
         except:
             return
 
 
-    def handleRtsp(self,request):
+    def handle_rtsp(self,request):
         request = request.decode('utf-8')
         request = request.split('\n')
         #print('request:',request)
@@ -114,15 +114,11 @@ class Server:
                     print('except')
                     self.reply_rtsp('FILE_NOT_FOUND_404', seq)
 
-                # Generate a randomized RTSP session ID
-
-                # Send RTSP reply
                 self.reply_rtsp('OK_200', seq)
 
-                # Get the RTP/UDP port from the last line
                 self.rtpPort = request[2].split(' ')[3]
-                print('rtpport',self.rtpPort)
-                self.openRtcpPort()
+                #print('rtpport',self.rtpPort)
+                self.open_rtcp_port()
 
             else:
                 pass
@@ -386,59 +382,6 @@ class Server:
             except:
                 return
 
-    def send_rtp(self):
-        new_data = True
-        packet_list_index = 0
-        while True:
-            # Stop sending if request is PAUSE or TEARDOWN
-            if self.event.isSet():
-                break
-            if not self.video or self.new_video:
-                if self.filename:
-                    self.video = Video(self.filename)
-
-            if True: #new_data or self.new_video:
-                data = self.video.next_frame()
-                self.new_video = False
-                if not data:
-                    self.video = Video(self.filename)
-                    data, frame = self.video.next_frame()
-                packet_num = self.cal_packet_num(data)
-                packet_list = self.make_rtp_list(data, frame)
-                packet_list_index = 0
-
-            # if packet_num + self.current_window_num <= self.window_size:
-            #     new_data = True
-            # else:
-            #     new_data = False
-
-            try:
-                packet_list_index = 0
-                for i in range(packet_list_index, len(packet_list)):
-                    # if self.current_window_num == self.window_size:
-                    #     packet_list_index = i
-                    #     break
-                    (packet, current_seq) = packet_list[i]
-                    # if current_seq <= self.lastInWindow:
-                    #     continue
-
-                    # self.lock.acquire()
-                    if current_seq < self.window_size:
-                        self.buffer.append((packet, current_seq))
-                    else:
-                        index = current_seq % self.window_size
-                        self.buffer[index] = (packet, current_seq)
-                    self.send_rtp_packet(packet)
-
-
-                    # print('cur_seq')
-                    # print(current_seq)
-                    # self.lastInWindow = current_seq
-                    # self.current_window_num = self.lastInWindow - self.firstInWindow + 1  # self.current_window_num + 1
-                    # self.lock.release()
-            except:
-                print("Connection Error")
-                return
 
 
     def cal_packet_num(self, data):
@@ -511,10 +454,7 @@ class Server:
             remain = remain - packet_length
         return packet_list
 
-    def openRtcpPort(self):
-        """Open RTCP socket binded to a specified port."""
-        # Create a new datagram socket to receive RTP packets from the server
-
+    def open_rtcp_port(self):
         self.rtcpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rtcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -523,4 +463,3 @@ class Server:
 
         except:
             print('fail to open port')
-        print('successfully open')

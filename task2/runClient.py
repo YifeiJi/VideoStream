@@ -12,13 +12,8 @@ if __name__ == "__main__":
         serverPort = sys.argv[2]
         rtpPort = sys.argv[3]
     except:
-        print ("[Usage: ClientLauncher.py Server_name Server_port RTP_port Video_file]\n")
+        print ("Error parameters")
 
-
-    # root = Tk()
-    # button_root = Tk()
     app = QApplication(sys.argv)
-
-    # Create a new client
     client = Client(None,None, serverAddr, serverPort, rtpPort)
     sys.exit(app.exec_())

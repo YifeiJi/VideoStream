@@ -267,13 +267,13 @@ class Client(QMainWindow):
         self.createWidgets()
         self.list = QListWidget(self.movie_window)
         name_list = eval(self.movie_list)
-        print(name_list)
+        #print(name_list)
 
         #self.list.itemDoubleClicked.connect(self.setupMovie)
         self.list.show()
 
         for tup in name_list:
-            print(tup)
+            #print(tup)
             name, des, bullet,length = tup
             self.time[name] = length
             if not des:
@@ -285,7 +285,7 @@ class Client(QMainWindow):
                 bullet_dict = {}
                 for line in bullet_lines:
                     line = line.split(' ')
-                    print(line)
+                    #print(line)
                     if len(line) <= 1:
                         continue
                     frame_number = int(line[0])
@@ -294,11 +294,11 @@ class Client(QMainWindow):
                         bullet_dict[frame_number] = [content]
                     else:
                         bullet_dict[frame_number].append(content)
-                print(bullet_dict)
+                #print(bullet_dict)
                 bullet_store[name] = bullet_dict
             else:
                 bullet_store[name] = {}
-            print(bullet_store)
+            #print(bullet_store)
             item_widget = QWidget(self)
             item_layout = QVBoxLayout()
 
@@ -408,8 +408,8 @@ class Client(QMainWindow):
                                                 0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
 
 
-                print(self.restore_point, self.movie_time, self.movie_length)
-                print(time_str)
+                #print(self.restore_point, self.movie_time, self.movie_length)
+                #print(time_str)
                 # self.restore_label = QLabel(time_str,self.movie_window)
                 # self.restore_label.setGeometry(self.movie_window.width() * 0.8,
                 #                                 self.movie_window.movie_height + 0.3 * (
@@ -527,7 +527,7 @@ class Client(QMainWindow):
             message = 'QUA 2 ' + str(num)
             self.quality = ''
         self.require_buffer = True
-        print(message)
+        #print(message)
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
         return
@@ -553,7 +553,7 @@ class Client(QMainWindow):
         bullet_store[self.fileName] = bullet_dict
 
         message = 'BUL ' + str(num) + ' ' + text
-        print(message)
+        #print(message)
         self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
 
 
@@ -569,7 +569,7 @@ class Client(QMainWindow):
             name = self.get_name(num)
             if name not in stor:
                 message = 'RES ' + str(num)
-                print(message)
+                #print(message)
                 self.last_frame_time = 0
                 self.recv_v = 0
                 self.rtpSocket.sendto(message.encode(), (self.serverAddr, self.serverPort + 1))
@@ -692,7 +692,7 @@ class Client(QMainWindow):
 
 
     def playAudio(self,filename):
-        print(filename)
+        #print(filename)
         filepath = os.path.join(self.cache_base, filename)
         #print(filepath)
         if os.path.exists(filepath):
@@ -726,7 +726,7 @@ class Client(QMainWindow):
             return
         if self.require_buffer:
             buffer_ok = True
-            print(self.buffer)
+            #print(self.buffer)
             up = self.frame_to_play + self.buffer
             if up > self.movie_length - 1:
                 up = self.movie_length - 1
@@ -768,10 +768,6 @@ class Client(QMainWindow):
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1
                 restore_point_store[self.fileName] = self.frame_to_play
-            else:
-                print('cold')
-                pass
-                #self.require_buffer = True
 
 
 
@@ -782,15 +778,15 @@ class Client(QMainWindow):
         self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.rtspSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            print(self.init_serverPort)
+            #print(self.init_serverPort)
             self.rtspSocket.connect((self.serverAddr, self.init_serverPort))
-            print('connect')
+            #print('connect')
             self.serverPort = self.rtspSocket.recv(256).decode("utf-8")
-            print(self.serverPort)
+            #print(self.serverPort)
             self.serverPort = self.serverPort.split(' ')[-1]
-            print(self.serverPort)
+            #print(self.serverPort)
             self.serverPort = int(self.serverPort)
-            print(self.serverPort)
+            #print(self.serverPort)
             self.rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.rtspSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.rtspSocket.connect((self.serverAddr, self.serverPort))
@@ -915,9 +911,9 @@ class Client(QMainWindow):
                 p = p.split(' ')
                 if p[1] == 'Length':
                     length = int(p[2])
-                    print(length)
+                    #print(length)
                     height = int(p[4])
-                    print(height)
+                    #print(height)
                     width = int(p[6])
                     self.fps = int(p[8])
                     self.interval = 1/self.fps
@@ -947,13 +943,13 @@ class Client(QMainWindow):
 
                 elif p[1] == 'List':
                     p = lines[0]
-                    print(p)
+                    #print(p)
                     p = p.split(' ')
-                    print('p',p)
+                    #print('p',p)
                     p = ' '.join(p[2:])
-                    print('newp',p)
+                    #print('newp',p)
                     self.movie_list = p
-                    print('list:', p)
+                    #print('list:', p)
                     self.add_sig.emit()
 
                 elif int(p[1]) == 200:
@@ -974,28 +970,15 @@ class Client(QMainWindow):
                         # Flag the teardownAcked to close the socket.
                         self.teardownAcked = 1
 
-    def openRtpPort(self):
-        """Open RTP socket binded to a specified port."""
-        # Create a new datagram socket to receive RTP packets from the server
+    def opentpPort(self):
 
         self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        # Set the timeout value of the socket to 0.5sec
         self.rtpSocket.settimeout(0.5)
 
         try:
-            # Bind the socket to the address using the RTP port given by the client user
 
             self.rtpSocket.bind(("", self.rtpPort))
         except:
-            #tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' % self.rtpPort)
-            print('cannot open')
-        print('successfully open')
+            print('Failed to open rtpPort')
 
-    # def handler(self):
-    #     """Handler on explicitly closing the GUI window."""
-    #     self.pauseMovie()
-    #     if tkinter.messagebox.askokcancel("Quit?", "Are you sure you want to quit?"):
-    #         self.exitClient()
-    #     else:  # When the user presses cancel, resume playing.
-    #         self.playMovie()

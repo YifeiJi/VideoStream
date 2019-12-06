@@ -61,7 +61,6 @@ class Server:
                 except:
                     self.reply_rtsp(404, seq)
 
-                # Generate a randomized RTSP session ID
                 self.session = randint(100000, 999999)
                 self.frame_number = 0
                 self.reply_rtsp(200, seq)

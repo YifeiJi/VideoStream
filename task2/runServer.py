@@ -31,7 +31,6 @@ _rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 _rtspSocket.bind(('', _SERVER_PORT))
 _rtspSocket.listen(5)
 
-# Receive client info (address,port) through RTSP/TCP session
 while True:
 
     con = _rtspSocket.accept()
@@ -49,7 +48,7 @@ while True:
 
     reply = 'PORT ' + str(SERVER_PORT)
     reply = reply.encode('utf-8')
-    print(reply)
+    #print(reply)
     con[0].send(reply)
 
 
@@ -58,6 +57,5 @@ while True:
     print('new client')
     server = Server(SERVER_PORT,rtspSocket)
     server.start()
-    print('stop')
 
 
