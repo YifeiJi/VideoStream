@@ -4,16 +4,13 @@ from Client import Client
 
 if __name__ == "__main__":
     try:
-        serverAddr = sys.argv[1]
-        serverPort = sys.argv[2]
-        rtpPort = sys.argv[3]
-        fileName = sys.argv[4]
+        server_addr = sys.argv[1]
+        server_port = sys.argv[2]
+        my_port = sys.argv[3]
     except:
-        print ("[Usage: ClientLauncher.py Server_name Server_port RTP_port Video_file]\n")
+        print ("Error\n")
 
-    root = Tk()
-
-    # Create a new client
-    app = Client(root, serverAddr, serverPort, rtpPort, fileName)
+    window = Tk()
+    app = Client(window, server_addr, server_port, my_port)
     app.master.title("Client")
-    root.mainloop()
+    window.mainloop()

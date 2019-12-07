@@ -20,14 +20,14 @@ class Client:
 	TEARDOWN = 3
 	
 	# Initiation..
-	def __init__(self, master, serveraddr, serverport, rtpport, filename=None):
+	def __init__(self, master, serveraddr, serverport, rtpport):
 		self.master = master
 		self.master.protocol("WM_DELETE_WINDOW", self.handler)
 		self.createWidgets()
 		self.serverAddr = serveraddr
 		self.serverPort = int(serverport)
 		self.rtpPort = int(rtpport)
-		self.fileName = filename
+		self.fileName = ''
 		self.rtspSeq = 0
 		self.sessionId = 0
 		self.requestSent = -1
@@ -110,9 +110,9 @@ class Client:
 							payload = rtpPacket.getPayload()
 						else:
 							payload = payload + rtpPacket.getPayload()
-						print(m)
+						#print(m)
 						if m == 1:
-							print('break')
+							#print('break')
 							break
 
 				#print("Current Seq Num: " + str(currFrameNbr))
@@ -197,7 +197,7 @@ class Client:
 		# Send the RTSP request using rtspSocket.
 		self.rtspSocket.send(request.encode())
 		
-		print('\nData sent:\n' + request)
+		#print('\nData sent:\n' + request)
 	
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
@@ -217,8 +217,8 @@ class Client:
 	
 	def parseRtspReply(self, data):
 		"""Parse the RTSP reply from the server."""
-		print('Received:')
-		print(data)
+		# print('Received:')
+		# print(data)
 		lines = str(data).split('\n')
 		seqNum = int(lines[1].split(' ')[1])
 		
@@ -251,7 +251,7 @@ class Client:
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
 		# Create a new datagram socket to receive RTP packets from the server
-		print('begin open')
+		#print('begin open')
 		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 		# Set the timeout value of the socket to 0.5sec
@@ -259,12 +259,14 @@ class Client:
 		
 		try:
 			# Bind the socket to the address using the RTP port given by the client user
-			print('rtpport')
-			print(self.rtpPort)
+			# print('rtpport')
+			# print(self.rtpPort)
 			self.rtpSocket.bind(("", self.rtpPort))
 		except:
 			tkinter.messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
-		print('successfully open')
+		#print('successfully open')
+
+
 	def handler(self):
 		"""Handler on explicitly closing the GUI window."""
 		self.pauseMovie()

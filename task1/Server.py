@@ -6,6 +6,7 @@ import os
 class Server:
     def __init__(self, rtsp_socket):
         self.rtsp_socket = rtsp_socket
+        self.rtsp_conn_socket = self.rtsp_socket[0]
         self.rtp_socket = None
         self.status = 'NOT READY'
         self.filename = None
@@ -15,7 +16,7 @@ class Server:
         self.frame_number = 0
         self.event = None
 
-    def start(self):
+    def work(self):
         self.make_picture_list()
         threading.Thread(target=self.listen_rtsp).start()
 
@@ -28,9 +29,8 @@ class Server:
         self.picture_num = len(self.picture_list)
 
     def listen_rtsp(self):
-        conn = self.rtsp_socket[0]
         while True:
-            res = conn.recv(256)
+            res = self.rtsp_conn_socket.recv(256)
             if res:
                 # print ("Received:\n")
                 # print(res)
@@ -59,25 +59,25 @@ class Server:
                     self.filename = filename
                     self.status = 'READY'
                 except:
-                    self.reply_rtsp(404, seq)
+                    self.reply_rtsp('ERROR', seq)
 
-                self.session = randint(100000, 999999)
+                self.session = randint(1000, 9999)
                 self.frame_number = 0
-                self.reply_rtsp(200, seq)
-                self.rtpPort = request[2].split(' ')[3]
+                self.reply_rtsp('OK', seq)
+                self.rtp_port = request[2].split(' ')[3]
             else:
                 pass
 
         elif cmd == 'TEARDOWN':
             self.event.set()
-            self.reply_rtsp(200, seq)
+            self.reply_rtsp('OK', seq)
             self.rtp_socket.close()
 
         elif cmd == 'PLAY':
             self.status = 'PLAYING'
             self.rtp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.event = threading.Event()
-            self.reply_rtsp(200, seq)
+            self.reply_rtsp('OK', seq)
             threading.Thread(target=self.listen_rtsp).start()
             self.send_rtp()
 
@@ -89,19 +89,18 @@ class Server:
             if self.status == 'PLAYING':
                 self.status = 'READY'
                 self.event.set()
-                self.reply_rtsp(200, seq)
+                self.reply_rtsp('OK', seq)
         else:
             pass
 
     def reply_rtsp(self, code, seq):
-        if code == 200:
+        if code == 'OK':
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.session)
             # print('reply')
             # print(reply)
             reply = reply.encode('utf-8')
-            conn_socket = self.rtsp_socket[0]
-            conn_socket.send(reply)
+            self.rtsp_conn_socket.send(reply)
         else:
             print('Error')
             return
@@ -112,16 +111,14 @@ class Server:
             if self.event.isSet():
                 break
             filename = self.picture_list[self.frame_number]
-            #str(frameNumber) + '.jpg'
-            #print(filename)
             filepath = os.path.join(self.base_path,filename)
-            f = open(filepath,'rb')
+            f = open(filepath, 'rb')
             data = f.read()
             if data:
                 try:
                     address = self.rtsp_socket[1][0]
                     #print(address)
-                    port = int(self.rtpPort)
+                    port = int(self.rtp_port)
 
                     packet_list = self.make_rtp_list(data, self.frame_number)
 
@@ -132,28 +129,28 @@ class Server:
                         self.frame_number = 0
 
                 except:
-                    print("Connection Error")
+                    print("Error")
 
 
     def make_rtp_list(self,payload,frame_number):
         packet_list = []
         remain = len(payload)
         while remain > 0:
-            V = 2
-            P = 0
-            X = 0
-            CC = 0
-            M = 0
-            PT = 26
-            seqNum = frame_number
-            SSRC = 0
-            if remain <= 10240:
-                M = 1
+            version = 2
+            padding = 0
+            extension = 0
+            cc = 0
+            marker = 0
+            pt = 26
+            seqnum = frame_number
+            ssrc = 0
+            if remain <= 20460:
+                marker = 1
                 packet_length = remain
             else:
-                packet_length = 10240
+                packet_length = 20460
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum, M, PT, SSRC, payload[0:packet_length])
+            rtpPacket.encode(version, padding, extension, cc, seqnum, marker, pt, ssrc, payload[0:packet_length])
             packet = rtpPacket.getPacket()
             packet_list.append(packet)
             payload = payload[packet_length:]

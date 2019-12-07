@@ -3,62 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="2c9893b6-fe76-46da-83a9-8cfc7b3e950b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/0.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/000.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/1.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/10.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/11.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/12.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/13.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/14.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/15.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/16.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/17.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/18.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/19.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/2.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/20.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/21.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/22.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/23.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/24.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/25.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/26.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/27.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/28.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/29.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/3.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/30.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/31.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/32.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/33.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/34.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/4.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/5.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/6.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/7.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/8.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/9.jpg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Client.py" beforeDir="false" afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Server.py" beforeDir="false" afterPath="$PROJECT_DIR$/Server.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-142157.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-250128.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-256392.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-359126.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-397011.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-504159.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-555709.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-559802.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-570858.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-589215.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-602712.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-661982.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-697301.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-723712.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-878940.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache-986263.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/runClient.py" beforeDir="false" afterPath="$PROJECT_DIR$/runClient.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/runServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/runServer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../task2/runServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../task2/runServer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -130,6 +78,7 @@
       <updated>1574497140112</updated>
       <workItem from="1574497145307" duration="1957000" />
       <workItem from="1575597958618" duration="2477000" />
+      <workItem from="1575728467671" duration="1085000" />
     </task>
     <servers />
   </component>
@@ -151,6 +100,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/task1$Unnamed.coverage" NAME="runServer Coverage Results" MODIFIED="1574497420398" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/task1$runServer.coverage" NAME="runServer Coverage Results" MODIFIED="1575600444968" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/task1$runServer.coverage" NAME="runServer Coverage Results" MODIFIED="1575729576754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
