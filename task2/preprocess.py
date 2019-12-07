@@ -11,12 +11,12 @@ def make_cache(file_name, cache_path):
     audio_name = real_name + '.mp3'
     info = ffmpeg.probe(file_name)
     stream = info['streams']
-    #print(stream)
+    # print(stream)
     sec = math.ceil(float(stream[0]['duration']))
 
     cmd_img_low = 'ffmpeg -i ' + file_name + ' -qscale:v 31 ' + cache_path + '\%d-low.jpg -v quiet'
     subprocess.call(cmd_img_low, shell=True)
-    cmd_img = 'ffmpeg -i ' + file_name + ' -qscale:v 5 ' + cache_path + '\%d.jpg -v quiet'
+    cmd_img = 'ffmpeg -i ' + file_name + ' -qscale:v 2 ' + cache_path + '\%d.jpg -v quiet'
     print(cmd_img)
     subprocess.call(cmd_img, shell=True)
 

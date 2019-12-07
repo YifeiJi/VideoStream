@@ -305,6 +305,7 @@ class Client(QMainWindow):
             self.list.setGeometry(self.movie_window.width()*0.7,0,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.75)
 
             self.bullet_editor = QLineEdit(self.movie_window)
+            self.bullet_editor.setClearButtonEnabled(True)
             self.bullet_editor.setGeometry(self.movie_window.width()*0.7,self.movie_window.movie_height * 0.78,self.movie_window.width()*0.28,self.movie_window.movie_height * 0.15)
             self.bullet_editor.show()
 
