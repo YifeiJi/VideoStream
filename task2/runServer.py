@@ -26,36 +26,36 @@ for item in movie_list:
 print("All Preprocess Done")
 print('--------------------')
 
-_SERVER_PORT = 8000 #int(sys.argv[1])
-_rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-_rtspSocket.bind(('', _SERVER_PORT))
-_rtspSocket.listen(5)
+_server_port = int(sys.argv[1])
+_rtsp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+_rtsp_socket.bind(('', _server_port))
+_rtsp_socket.listen(5)
 
 while True:
 
-    con = _rtspSocket.accept()
+    con = _rtsp_socket.accept()
     while True:
-        SERVER_PORT = randint(6000, 10000)
+        server_port = randint(20000,60000)
         try:
-            if SERVER_PORT == _SERVER_PORT:
+            if server_port == _server_port:
                 continue
-            rtspSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            rtspSocket.bind(('', SERVER_PORT))
+            rtsp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            rtsp_socket.bind(('', server_port))
 
             break
         except:
             continue
 
-    reply = 'PORT ' + str(SERVER_PORT)
+    reply = 'PORT ' + str(server_port)
     reply = reply.encode('utf-8')
     #print(reply)
     con[0].send(reply)
 
 
-    rtspSocket.listen(5)
-    rtspSocket = rtspSocket.accept()
+    rtsp_socket.listen(5)
+    rtsp_socket = rtsp_socket.accept()
     print('new client')
-    server = Server(SERVER_PORT,rtspSocket)
+    server = Server(server_port,rtsp_socket)
     server.start()
 
 

@@ -1,22 +1,15 @@
-from tkinter import *
-import tkinter.messagebox
-from PIL import Image, ImageTk
 from time import *
 from random import *
-import socket, threading, sys, traceback, os
+import socket, threading, os
 from RtpPacket import RtpPacket
 from PyQt5.QtWidgets import *
-from PyQt5.QtNetwork import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from playsound import playsound
-import subprocess
 
 stor = {}
 bullet_store = {}
 
-# CACHE_FILE_NAME = "cache-"
-# CACHE_FILE_EXT = ".jpg"
 txt_color = [
     '#4D4DFF', '#FF6EC7', '#00009C','#23238E',
     '#426F42', '#7F00FF', '#7FFF00', '#70DBDB',
@@ -53,7 +46,7 @@ class Movie_window(QMainWindow):
     exit = pyqtSignal()
     def __init__(self):
         super(Movie_window, self).__init__()
-        self.setWindowTitle('Play')
+        self.setWindowTitle('Client')
         self.desktop = QApplication.desktop()
         self.screen_width = self.desktop.width()
         self.screen_height = self.desktop.height()
@@ -386,29 +379,30 @@ class Client(QMainWindow):
             line = checkout_file.read()
             lines = line.split('\n')
             for line in lines:
-                print(line)
+                #print(line)
                 if not len(line):
                     continue
                 line = line.replace('\n','')
                 item = line.split(' ')
                 frame = int(item[-1])
                 name = ' '.join(item[:-1])
-                print(frame,'   ',name)
+                #print(frame,'   ',name)
                 self.restore_point_store[name] = frame
 
     def exitClient(self):
         """Teardown button handler."""
-
+        if self.state == self.INIT:
+            return
         self.sendRtspRequest(self.TEARDOWN)
         self.seq_num = -1
         file_name = 'restore_point.txt'
         checkout_file = open(file_name,'w')
         msg = ''
         for item in eval(self.movie_list):
-            print('item')
-            print(item)
+            # print('item')
+            # print(item)
             name = item[0]
-            print(self.restore_point_store[name])
+            # print(self.restore_point_store[name])
             msg = msg + name + ' ' + str(self.restore_point_store[name]) + '\n'
         checkout_file.write(msg)
         return
@@ -605,7 +599,7 @@ class Client(QMainWindow):
                         if self.recv_v == 0:
                             self.recv_v = time_expired
                         self.recv_v = self.recv_v * self.alpha + time_expired * (1 - self.alpha)
-                        print(self.recv_v)
+                        #print(self.recv_v)
                         current_frame_num = rtpPacket.framenum()
 
                         if self.interval < self.recv_v and self.require_buffer:
@@ -654,10 +648,10 @@ class Client(QMainWindow):
         global stor
         """Write the received frame to a temp image file. Return the image file."""
         cachename = str(self.sessionId) + filename + '-' + str(current_frame_num) + quality + '.jpg'
-        file_path = os.path.join(self.cache_base, cachename)
-        file = open(file_path, "wb")
-        file.write(data)
-        file.close()
+        # file_path = os.path.join(self.cache_base, cachename)
+        #         # file = open(file_path, "wb")
+        #         # file.write(data)
+        #         # file.close()
         stor[cachename] = data
         return cachename
 

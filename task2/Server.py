@@ -15,7 +15,7 @@ class Server:
         self.rtspSocket = rtspSocket
         self.status = 'NOT READY'
         self.filename = None
-        self.seqNum = 0
+        self.seq_num = 0
         self.video = None
         self.new_video = False
         self.event = None
@@ -106,15 +106,15 @@ class Server:
         if cmd == 'SETUP':
             if self.status == 'NOT READY':
                 try:
-                    self.session = randint(100000, 999999)
-                    self.frameNumber = 0
+                    self.session = randint(1000, 9999)
+                    self.frame_number = 0
                     self.reply_rtsp('List ' + str(self.movie_list), seq)
                     self.status = 'READY'
                 except:
                     print('except')
-                    self.reply_rtsp('FILE_NOT_FOUND_404', seq)
+                    self.reply_rtsp('Error', seq)
 
-                self.reply_rtsp('OK_200', seq)
+                self.reply_rtsp('OK', seq)
 
                 self.rtpPort = request[2].split(' ')[3]
                 #print('rtpport',self.rtpPort)
@@ -140,10 +140,10 @@ class Server:
 
         elif cmd == 'TEARDOWN':
             self.current_window_num = 0
-            self.seqNum = 0
+            self.seq_num = 0
             self.firstInWindow = 0
             self.lastInWindow = -1
-            self.reply_rtsp('OK_200', seq)
+            self.reply_rtsp('OK', seq)
             if self.event:
                 self.event.set()
             if self.rtpSocket:
@@ -165,7 +165,7 @@ class Server:
             self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.rtpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.event = threading.Event()
-            self.reply_rtsp('OK_200', seq)
+            self.reply_rtsp('OK', seq)
             #print('start play')
             self.new_video = True
             threading.Thread(target=self.recvACK).start()
@@ -181,7 +181,7 @@ class Server:
             if self.status == 'PLAYING':
                 self.status = 'READY'
                 self.event.set()
-                self.reply_rtsp('OK_200', seq)
+                self.reply_rtsp('OK', seq)
 
         else:
             pass
@@ -203,7 +203,7 @@ class Server:
             connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
-        elif code == 'OK_200':
+        elif code == 'OK':
 
             reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.session)
 
@@ -211,10 +211,8 @@ class Server:
             connSocket = self.rtspSocket[0]
             connSocket.send(reply)
 
-        elif code == 'FILE_NOT_FOUND_404':
-            print ("404 NOT FOUND")
-        elif code == 'CON_ERR_500':
-            print ("500 CONNECTION ERROR")
+        elif code == 'Error':
+            print ("Erro")
 
     def recvACK(self):
         try:
@@ -236,7 +234,7 @@ class Server:
                         if ack_num >= self.firstInWindow and ack_num <= self.lastInWindow:
                             self.lock.acquire()
                             #self.current_window_num = self.current_window_num - (ack_num - self.firstInWindow + 1)
-                            for t in range(self.firstInWindow,ack_num+1):
+                            for t in range(self.firstInWindow,ack_num + 1):
                                 index = t%self.window_size
                                 data,ii = self.buffer[index]
                             self.firstInWindow = ack_num + 1
@@ -397,59 +395,57 @@ class Server:
             address = self.rtspSocket[1][0]
             port = int(self.rtpPort)
             self.rtpSocket.sendto(packet, (address, port))
-            self.frameNumber = self.frameNumber + 1
+            self.frame_number = self.frame_number + 1
 
         except:
-            print("Connection Error")
+            print("Error")
 
     def make_rtp_list(self, payload, frame_num, audio, quality):
         packet_list = []
         remain = len(payload)
 
         if audio:
-            V = 2
-            P = 0
-            X = 0
-            CC = 0
-            M = 0
-            PT = 2
+            version = 2
+            padding = 0
+            extension = 0
+            cc = 0
+            marker = 0
+            pt = 2
 
-            seqNum = self.seqNum
-            self.seqNum = self.seqNum + 1
-            # frameNum = frameNumber
-            SSRC = 0
+            seqnum = self.seq_num
+            self.seq_num = self.seq_num + 1
+            ssrc = 0
             packet_length = len(audio)
             #print(packet_length)
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum, frame_num, M, PT, SSRC, audio, quality)
+            rtpPacket.encode(version, padding, extension, cc, seqnum, frame_num, marker, pt, ssrc, audio, quality)
             packet = rtpPacket.getPacket()
-            packet_list.append((packet, seqNum))
+            packet_list.append((packet, seqnum))
 
 
         while remain > 0:
 
-            V = 2
-            P = 0
-            X = 0
-            CC = 0
-            M = 0
-            PT = 1
+            version = 2
+            padding = 0
+            extension = 0
+            cc = 0
+            marker = 0
+            pt = 1
 
-            seqNum = self.seqNum
-            self.seqNum = self.seqNum + 1
-            #frameNum = frameNumber
-            SSRC = 0
+            seqnum = self.seq_num
+            self.seq_num = self.seq_num + 1
+            ssrc = 0
             if remain <= 20460:
-                M = 1
+                marker = 1
 
                 packet_length = remain
             else:
                 packet_length = 20460
 
             rtpPacket = RtpPacket()
-            rtpPacket.encode(V, P, X, CC, seqNum,frame_num, M, PT, SSRC, payload[0:packet_length], quality)
+            rtpPacket.encode(version, padding, extension, cc, seqnum,frame_num, marker, pt, ssrc, payload[0:packet_length], quality)
             packet = rtpPacket.getPacket()
-            packet_list.append((packet, seqNum))
+            packet_list.append((packet, seqnum))
             payload = payload[packet_length:]
             remain = remain - packet_length
         return packet_list
@@ -458,7 +454,7 @@ class Server:
         self.rtcpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rtcpSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            print(self.rtcp_port)
+            #print(self.rtcp_port)
             self.rtcpSocket.bind(("", self.rtcp_port))
 
         except:
