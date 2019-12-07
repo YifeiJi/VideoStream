@@ -3,10 +3,25 @@
   <component name="ChangeListManager">
     <list default="true" id="2c9893b6-fe76-46da-83a9-8cfc7b3e950b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Client.py" beforeDir="false" afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Server.py" beforeDir="false" afterPath="$PROJECT_DIR$/Server.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/runClient.py" beforeDir="false" afterPath="$PROJECT_DIR$/runClient.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/runServer.py" beforeDir="false" afterPath="$PROJECT_DIR$/runServer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/4.avi" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/4_bullet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/Client.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/RtcpPacket.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/RtpPacket.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/Server.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/Video.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/a.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/a_bullet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/a_des.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/audio.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/b.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/b_bullet.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/b_des.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/c.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/preprocess.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/runClient.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/runServer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../task2/temp.jpg" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -78,7 +93,7 @@
       <updated>1574497140112</updated>
       <workItem from="1574497145307" duration="1957000" />
       <workItem from="1575597958618" duration="2477000" />
-      <workItem from="1575728467671" duration="1085000" />
+      <workItem from="1575728467671" duration="3451000" />
     </task>
     <servers />
   </component>
@@ -100,6 +115,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/task1$Unnamed.coverage" NAME="runServer Coverage Results" MODIFIED="1574497420398" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/task1$runServer.coverage" NAME="runServer Coverage Results" MODIFIED="1575729576754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/task1$runServer.coverage" NAME="runServer Coverage Results" MODIFIED="1575732933752" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
