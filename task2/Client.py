@@ -40,6 +40,8 @@ class Bullet_label(QLabel):
         self.setStyleSheet('font:bold;font-size:40px;color:' + txt_color[self.color])
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
+
+
     def update(self, frame):
         self.setGeometry(self.v_x * (frame-self.init_frame),self.y(),self.width(), self.height())
         if self.x() + self.width() > self.limit or self.x() < 0:
@@ -49,6 +51,7 @@ class Bullet_label(QLabel):
 
 
 class Movie_window(QMainWindow):
+    exit = pyqtSignal()
     def __init__(self):
         super(Movie_window, self).__init__()
         self.setWindowTitle('Play')
@@ -64,6 +67,8 @@ class Movie_window(QMainWindow):
         self.background_label.setStyleSheet('border-width: 1px;border-style: solid;border - color: rgb(255, 170, 0);background - color: rgb(100, 149, 237);')
         self.background_label.setGeometry(0,0,self.movie_width,self.movie_height)
         self.background_label.hide()
+    def closeEvent(self, event):
+        self.exit.emit()
 
 class Client(QMainWindow):
     INIT = 0
@@ -80,6 +85,7 @@ class Client(QMainWindow):
     SETUPMOVIE = 4
     update = pyqtSignal()
     add_sig = pyqtSignal()
+
     # Initiation..
     def __init__(self, master, buttonmaster, serveraddr, serverport, rtpport):
         super(Client, self).__init__()
@@ -165,6 +171,7 @@ class Client(QMainWindow):
         self.setWindowTitle('Client')
         self.update.connect(self.updateMovie)
         self.add_sig.connect(self.addWidgets)
+        self.movie_window.exit.connect(self.exitClient)
 
         self.frame_to_play = 0
         self.require_buffer = True
@@ -419,6 +426,8 @@ class Client(QMainWindow):
                 self.restore_button.show()
                 #self.restore_label.show()
         return setupMovie
+
+
 
     def exitClient(self):
         """Teardown button handler."""
@@ -970,7 +979,7 @@ class Client(QMainWindow):
                         # Flag the teardownAcked to close the socket.
                         self.teardownAcked = 1
 
-    def opentpPort(self):
+    def openRtpPort(self):
 
         self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
