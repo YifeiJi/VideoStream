@@ -14,7 +14,6 @@ import subprocess
 
 stor = {}
 bullet_store = {}
-restore_point_store = {}
 
 # CACHE_FILE_NAME = "cache-"
 # CACHE_FILE_EXT = ".jpg"
@@ -84,6 +83,7 @@ class Client(QMainWindow):
     TEARDOWN = 3
     SETUPMOVIE = 4
     update = pyqtSignal()
+    show_restore = pyqtSignal()
     add_sig = pyqtSignal()
 
     # Initiation..
@@ -108,51 +108,10 @@ class Client(QMainWindow):
         self.fullscreen_label.setStyleSheet('background-color: rgb(0, 0, 0)')
         self.fullscreen_label.hide()
 
-        # self.movie_slider = QSlider(Qt.Horizontal,self.movie_window)
-        # self.movie_slider.setGeometry(0,self.movie_window.movie_height+0.3*(self.movie_window.height()-self.movie_window.movie_height),self.movie_window.movie_width,0.5*(self.movie_window.height()-self.movie_window.movie_height))
-        # self.movie_slider.setMinimum(0)
-        # self.movie_slider.setTickInterval(1)
-        # self.movie_slider.setTracking(False)
-        # self.movie_slider.sliderReleased.connect(self.send_rst)
-        # self.movie_slider.show()
-        #
-        # self.speed_btn_group = QButtonGroup(self.movie_window)
-        # self.speed_btn1 = QRadioButton("0.5倍速", self.movie_window)
-        # self.speed_btn1.setGeometry(0.63*self.movie_window.width(),0.1*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.speed_btn1.show()
-        # self.speed_btn_group.addButton(self.speed_btn1)
-        #
-        # self.speed_btn2 = QRadioButton("1 倍速", self.movie_window)
-        # self.speed_btn2.setChecked(True)
-        # self.speed_btn2.setGeometry(0.63*self.movie_window.width(),0.15*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.speed_btn2.show()
-        # self.speed_btn_group.addButton(self.speed_btn2)
-        #
-        # self.speed_btn3 = QRadioButton("1.5倍速", self.movie_window)
-        # self.speed_btn3.setGeometry(0.63*self.movie_window.width(),0.2*self.movie_window.height(),0.13*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.speed_btn3.show()
-        # self.speed_btn_group.addButton(self.speed_btn3)
-        #
-        # self.speed_btn4 = QRadioButton("2 倍速",  self.movie_window)
-        # self.speed_btn4.setGeometry(0.63*self.movie_window.width(),0.25*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.speed_btn4.show()
-        # self.speed_btn_group.addButton(self.speed_btn4)
-        #
-        #
-        # self.quality_btn1 = QRadioButton("低清",self.movie_window)
-        # self.quality_btn1.setGeometry(0.63*self.movie_window.width(),0.35*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.quality_btn1.show()
-        # self.quality_btn1.clicked.connect(self.send_quality)
-        #
-        # self.quality_btn2 = QRadioButton("高清",self.movie_window)
-        # self.quality_btn2.setChecked(True)
-        # self.quality_btn2.setGeometry(0.63*self.movie_window.width(),0.4*self.movie_window.height(),0.12*self.movie_window.width(),0.08*self.movie_window.height())
-        # self.quality_btn2.show()
-        # self.quality_btn2.clicked.connect(self.send_quality)
-        # self.quality = ''
         self.bullet_list = []
         self.movie_list = []
         self.time = {}
+        self.restore_point_store = {}
         #self.createWidgets()
         self.serverAddr = serveraddr
         self.init_serverPort = int(serverport)
@@ -167,10 +126,12 @@ class Client(QMainWindow):
         self.frame_to_play = 0
         self.movie_length = 0
         self.restore_point = 0
+        self.movie_time = 0
         #self.move(300, 300)
         self.setWindowTitle('Client')
         self.update.connect(self.updateMovie)
         self.add_sig.connect(self.addWidgets)
+        self.show_restore.connect(self.show_restore_button)
         self.movie_window.exit.connect(self.exitClient)
 
         self.frame_to_play = 0
@@ -267,7 +228,10 @@ class Client(QMainWindow):
         self.quality_btn2.show()
         self.quality_btn2.clicked.connect(self.send_quality)
         self.quality = ''
-
+        # self.display_label = QLabel(self.movie_window)
+        # self.display_label.setText('播放的视频：')
+        # self.display_label.setGeometry(0,0,50,50)
+        # self.display_label.hide()
     def addWidgets(self):
         """Build GUI."""
         # Create Setup button
@@ -285,7 +249,7 @@ class Client(QMainWindow):
             self.time[name] = length
             if not des:
                 des = ''
-            restore_point_store[name] = 0
+            self.restore_point_store[name] = 0
 
             if bullet:
                 bullet_lines = bullet.split('\n')
@@ -311,7 +275,6 @@ class Client(QMainWindow):
 
             control_layout = QHBoxLayout()
             des_layout = QHBoxLayout()
-
             name_label = QLabel(name,self)
             control_layout.addWidget(name_label, alignment=Qt.AlignLeft)
 
@@ -334,6 +297,7 @@ class Client(QMainWindow):
 
             item_widget.setLayout(item_layout)
             item = QListWidgetItem()
+            item.name = name
             item.setSizeHint(item_layout.sizeHint())
             #item.setSizeHint(QSize(200, 50))
             self.list.addItem(item)
@@ -350,6 +314,7 @@ class Client(QMainWindow):
                                            self.movie_window.width() * 0.28, self.movie_window.movie_height * 0.03)
             self.bullet_send.clicked.connect(self.send_bullet)
             self.bullet_send.hide()
+            self.checkout_restore_point()
 
     def setupConnection(self):
         """Setup button handler."""
@@ -365,7 +330,7 @@ class Client(QMainWindow):
             #print(filename)
             self.buffer = 50
             self.fileName = filename
-            self.restore_point = restore_point_store[filename]
+            self.restore_point = self.restore_point_store[filename]
             self.realname = filename.split('.')[0]
             if self.fileName in bullet_store:
                 self.bullet = bullet_store[self.fileName]
@@ -400,46 +365,52 @@ class Client(QMainWindow):
             self.pause_button.show()
             self.fullscreen_button.show()
             self.bullet_send.show()
-            if self.restore_point != 0:
 
-                time = int(self.restore_point * self.movie_time / self.movie_length )
+            # self.display_label.setText('播放的视频：' + filename)
+            # self.display_label.adjustSize()
+            # self.display_label.show()
 
-                m, s = divmod(time, 60)
-                h, m = divmod(m, 60)
-                time_str = '上次观看到：%02d:%02d:%02d, 点击从此处播放' % (h, m, s)
-                self.restore_button = QPushButton(time_str, self.movie_window)
-                self.restore_button.clicked.connect(self.playMovie_wrapper(self.restore_point))
-                self.restore_button.setGeometry(self.movie_window.width() * 0.75,
-                                                self.movie_window.movie_height + 0.6 * (
-                                                        self.movie_window.height() - self.movie_window.movie_height),
-                                                0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
+            number = self.list.count()
+            for i in range(number):
+                item = self.list.item(i)
+                if item.name == filename:
+                    self.list.setCurrentItem(item)
 
-
-                #print(self.restore_point, self.movie_time, self.movie_length)
-                #print(time_str)
-                # self.restore_label = QLabel(time_str,self.movie_window)
-                # self.restore_label.setGeometry(self.movie_window.width() * 0.8,
-                #                                 self.movie_window.movie_height + 0.3 * (
-                #                                         self.movie_window.height() - self.movie_window.movie_height),
-                #                                 0.08 * self.movie_window.width(), 0.05 * self.movie_window.height())
-                self.restore_button.adjustSize()
-                self.restore_button.show()
-                #self.restore_label.show()
         return setupMovie
 
-
+    def checkout_restore_point(self):
+        file_name = 'restore_point.txt'
+        if os.path.exists(file_name):
+            checkout_file = open(file_name,'r')
+            line = checkout_file.read()
+            lines = line.split('\n')
+            for line in lines:
+                print(line)
+                if not len(line):
+                    continue
+                line = line.replace('\n','')
+                item = line.split(' ')
+                frame = int(item[-1])
+                name = ' '.join(item[:-1])
+                print(frame,'   ',name)
+                self.restore_point_store[name] = frame
 
     def exitClient(self):
         """Teardown button handler."""
 
         self.sendRtspRequest(self.TEARDOWN)
         self.seq_num = -1
-        try:
-            pass
-            #os.remove(CACHE_FILE_NAME + str(self.sessionId) + CACHE_FILE_EXT)  # Delete the cache image from video
-        except:
-            pass
-        #self.destroy()
+        file_name = 'restore_point.txt'
+        checkout_file = open(file_name,'w')
+        msg = ''
+        for item in eval(self.movie_list):
+            print('item')
+            print(item)
+            name = item[0]
+            print(self.restore_point_store[name])
+            msg = msg + name + ' ' + str(self.restore_point_store[name]) + '\n'
+        checkout_file.write(msg)
+        return
 
     def pauseMovie(self):
         """Pause button handler."""
@@ -776,7 +747,7 @@ class Client(QMainWindow):
                 if not self.movie_slider.isSliderDown():
                     self.movie_slider.setValue(self.frame_to_play)
                 self.frame_to_play = self.frame_to_play + 1
-                restore_point_store[self.fileName] = self.frame_to_play
+                self.restore_point_store[self.fileName] = self.frame_to_play
 
 
 
@@ -900,14 +871,11 @@ class Client(QMainWindow):
 
     def parseRtspReply(self, data):
         """Parse the RTSP reply from the server."""
-        #print('Received:')
-        #print(data)
+
 
         lines = str(data).split('\n')
         seqNum = int(lines[1].split(' ')[1])
 
-
-        # Process only if the server reply's sequence number is the same as the request's
         if seqNum == self.rtspSeq:
             session = int(lines[2].split(' ')[1])
             # New RTSP session ID
@@ -949,6 +917,7 @@ class Client(QMainWindow):
                         self.full_multiply = full_multiply_width
                     else:
                         self.full_multiply = full_multiply_height
+                    self.show_restore.emit()
 
                 elif p[1] == 'List':
                     p = lines[0]
@@ -991,3 +960,20 @@ class Client(QMainWindow):
         except:
             print('Failed to open rtpPort')
 
+    def show_restore_button(self):
+        if self.restore_point != 0:
+            time = int(self.restore_point * self.movie_time / self.movie_length)
+
+            m, s = divmod(time, 60)
+            h, m = divmod(m, 60)
+            time_str = '上次观看到：%02d:%02d:%02d, 点击从此处播放' % (h, m, s)
+            self.restore_button = QPushButton(time_str, self.movie_window)
+            self.restore_button.clicked.connect(self.playMovie_wrapper(self.restore_point))
+            self.restore_button.setGeometry(self.movie_window.width() * 0.75,
+                                            self.movie_window.movie_height + 0.6 * (
+                                                    self.movie_window.height() - self.movie_window.movie_height),
+                                            0.08 * self.movie_window.width(),
+                                            0.05 * self.movie_window.height())
+
+            self.restore_button.adjustSize()
+            self.restore_button.show()
